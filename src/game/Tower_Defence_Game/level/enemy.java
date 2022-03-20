@@ -12,12 +12,15 @@ public class enemy {
     protected int height;
     protected boolean visible;
     protected Image image;
+    protected int health;
     protected int damage;
     protected double speed;
     protected int range;
     protected double attack_speed;
     protected int attack_size;
     protected int value;
+    protected int targeting;
+    protected levelBoard.Direction direction = levelBoard.Direction.DOWN;
 
     public enemy(double x, double y) {
         this.x = x;
@@ -94,5 +97,17 @@ public class enemy {
 
     public int getValue() {
         return value;
+    }
+
+    public int getTargeting() {
+        return targeting;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public void setHealth(int health) {
+        this.health = health;
     }
 }
