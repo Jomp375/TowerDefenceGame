@@ -1,8 +1,6 @@
 package game.Tower_Defence_Game.level;
 
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Image;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.*;
@@ -55,6 +53,7 @@ public class levelBoard extends JPanel {
 
     @Override
     public void paintComponent(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
         boolean isFirstBase = true;
         ImageIcon rock = new ImageIcon("src/recources/level_elements/Rock.png");
         ImageIcon empty = new ImageIcon("src/recources/level_elements/empty.png");
@@ -62,15 +61,15 @@ public class levelBoard extends JPanel {
         for (int i = 0; i < Field.length; i++) {
             for (int j = 0; j < Field[i].length; j++) {
                 if (Field[i][j] == EMPTY_CELL) {
-                   g.drawImage(empty.getImage(), i * CELL_SIZE,
+                   g2d.drawImage(empty.getImage(), i * CELL_SIZE,
                             j * CELL_SIZE, this);
 
                 } else if (Field[i][j] == ROCK_CELL) {
 
-                    g.drawImage(rock.getImage(), i * CELL_SIZE,
+                    g2d.drawImage(rock.getImage(), i * CELL_SIZE,
                             j * CELL_SIZE, this);
                 } else if (Field[i][j] == MAIN_BASE_CELL && isFirstBase) {
-                    g.drawImage(base.getImage(),i * CELL_SIZE,
+                    g2d.drawImage(base.getImage(),i * CELL_SIZE,
                             j * CELL_SIZE, this);
                     isFirstBase = false;
                 }

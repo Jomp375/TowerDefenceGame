@@ -1,6 +1,7 @@
 package game.Tower_Defence_Game.level;
 
-import java.awt.Image;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
 
 import static java.awt.Image.SCALE_DEFAULT;
@@ -40,16 +41,21 @@ public class enemy {
         ImageIcon imageIcon = new ImageIcon(imageName);
 
         this.width = width;
-        this.height = width;
+        this.height = height;
 
         image = imageIcon.getImage().getScaledInstance(width, height, SCALE_DEFAULT);
     }
+
 
     protected void getImageDimensions() {
         if (width == 0) {
             width = image.getWidth(null);
             height = image.getHeight(null);
         }
+    }
+
+    public void setDirection(levelBoard.Direction direction) {
+        this.direction = direction;
     }
 
     public Image getImage() {
