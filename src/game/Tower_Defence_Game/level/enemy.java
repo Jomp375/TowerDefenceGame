@@ -21,6 +21,8 @@ public class enemy {
     protected int attack_size;
     protected int value;
     protected int targeting;
+    protected double internal_speed_timer;
+    protected double internal_attack_timer;
     protected levelBoard.Direction direction = levelBoard.Direction.DOWN;
 
     public enemy(double x, double y) {
@@ -126,5 +128,17 @@ public class enemy {
 
     public void setHealth(int health) {
         this.health = health;
+    }
+    public void updateSpeedTimer (double increase){
+        internal_speed_timer = internal_speed_timer + increase;
+    }
+    public void updateAttackTimer (double increase){
+        internal_attack_timer = internal_attack_timer + increase;
+    }
+    public double getSpeedTimer() {
+        return internal_speed_timer;
+    }
+    public double getAttackTimer() {
+        return internal_attack_timer;
     }
 }
