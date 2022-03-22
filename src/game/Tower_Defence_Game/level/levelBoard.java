@@ -1,7 +1,5 @@
 package game.Tower_Defence_Game.level;
 
-import game.Tower_Defence_Game.level.enemies.farmer;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,6 +9,7 @@ import java.util.*;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.Timer;
 
 public class levelBoard extends JPanel {
     private final int CELL_SIZE = 60;
@@ -20,22 +19,21 @@ public class levelBoard extends JPanel {
     private final int MAIN_BASE_CELL = 5;
     private final int N_ROWS = 25;
     private final int N_COLS = 13;
-    private final double DELTA_TIME = 0.1;
+    private final int FPS = 50;
+    private final int PERIOD = 1000 / FPS;
     private final int BOARD_WIDTH = N_ROWS * CELL_SIZE + 1;
     private final int BOARD_HEIGHT = N_COLS * CELL_SIZE + 10;
-    private enemy current_enemy;
     private boolean inGame;
-    private Image[] img;
+    private boolean doRepaint = true;
     private final JLabel statusbar;
     public int level;
     public int[][] Field = new int[N_ROWS][ N_COLS ];
     public enemy [][] enemies = new enemy [N_ROWS][ N_COLS ];
-    private final ArrayList<Main_base> mainBaseCellsList = new ArrayList<Main_base>();
     private final int startMoney = 200;
     private int money = startMoney;
-
+    private int number = 1;
     private int CURRENT_WAVE = 1;
-    private int SECONDS_PASSED = 0;
+    private double MILLISECONDS_PASSED = 0;
     private final int AMOUNT_OF_WAVES = 7;
 
     public int MAX_HEALTH = 2000;
@@ -48,7 +46,10 @@ public class levelBoard extends JPanel {
 
     private void initBoard() {
         setPreferredSize(new Dimension(BOARD_WIDTH , BOARD_HEIGHT));
+        setBackground(Color.white);
         addMouseListener(new MinesAdapter());
+        javax.swing.Timer timer = new Timer(PERIOD, new GameCycle());
+        timer.start();
         newGame();
     }
     private void newGame() {
@@ -62,16 +63,18 @@ public class levelBoard extends JPanel {
 
     @Override
     public void paintComponent(Graphics g) {
+        super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         boolean isFirstBase = true;
+        enemy current_enemy;
         ImageIcon rock = new ImageIcon("src/recources/level_elements/Rock.png");
         ImageIcon empty = new ImageIcon("src/recources/level_elements/empty.png");
         ImageIcon base = new ImageIcon("src/recources/level_elements/main_base.png");
         for (int j = 0; j < N_COLS; j++) {
             for (int i = 0; i < N_ROWS; i++) {
                 if (Field[j][i] == EMPTY_CELL) {
-                   g2d.drawImage(empty.getImage(), i * CELL_SIZE,
-                            j * CELL_SIZE, this);
+//                   g2d.drawImage(empty.getImage(), i * CELL_SIZE,
+//                            j * CELL_SIZE, this);
 
                 } else if (Field[j][i] == ROCK_CELL) {
 
@@ -81,6 +84,12 @@ public class levelBoard extends JPanel {
                     g2d.drawImage(base.getImage(),i * CELL_SIZE,
                             j * CELL_SIZE, this);
                     isFirstBase = false;
+                } else if (Field[j][i] == ENEMY_CELL) {
+                    current_enemy = enemies [j][i];
+                    g2d.drawImage(current_enemy.getImage(),
+                            current_enemy.getX(),
+                            current_enemy.getY(),
+                            this);
                 }
             }
         }
@@ -99,12 +108,11 @@ public class levelBoard extends JPanel {
             int y = e.getY();
             int cCol = x / CELL_SIZE;
             int cRow = y / CELL_SIZE;
-            boolean doRepaint = false;
             if (!inGame) {
                 newGame();
                 repaint();
             }
-                    if (doRepaint) {
+            if (doRepaint) {
                         repaint();
                     }
                 }
@@ -123,8 +131,8 @@ public class levelBoard extends JPanel {
                                     {0,0,0,0,0,2,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
                                     {0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5},
                                     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5},
-                                    {2,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,5,5,5},
-                                    {2,2,2,0,0,0,0,0,0,0,0,2,0,0,0,2,2,0,0,0,0,0,0,0,0},
+                                    {2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,5,5,5},
+                                    {2,2,2,0,0,0,0,0,0,0,2,2,0,0,0,2,2,0,0,0,0,0,0,0,0},
                                     {0,2,2,2,2,0,0,0,0,2,2,0,0,0,0,2,2,2,0,0,0,0,0,0,0},
                                     {0,0,0,2,2,2,2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0,0,0,0},
                                     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0},
@@ -155,7 +163,6 @@ public class levelBoard extends JPanel {
         // in the labyrinth. But then we'd need additional checks in the code
         // whether the outer border is reached.)
         boolean[][] discovered = new boolean[lab.length][lab[0].length];
-
         // "Discover" and enqueue the cat's start position
         discovered[cy][cx] = true;
         queue.add(new Node(cx, cy, null));
@@ -165,27 +172,30 @@ public class levelBoard extends JPanel {
 
             // Go breath-first into each direction
             for (Direction dir : Direction.values()) {
-                int newX = node.x + dir.getDx()*CELL_SIZE;
-                int newY = node.y + dir.getDy()*CELL_SIZE;
-                Direction newDir = node.initialDir == null ? dir : node.initialDir;
+                if ((node.x != 0 || dir.getDx() >= 0)&& (node.x != lab[0].length -1 || dir.getDx() <= 0) && (node.y != 0 || dir.getDy() >= 0)&& (node.y != lab.length-1 || dir.getDy() <= 0)) {
+                    int newX = node.x + dir.getDx();
+                    int newY = node.y + dir.getDy();
+                    Direction newDir = node.initialDir == null ? dir : node.initialDir;
 
-                // Mouse found?
-                for (int j = 0; j < N_COLS; j++) {
-                    for (int i = 0; i < N_ROWS; i++) {
-                        if (Field [j][i] >= target) {
-                            if (newX == i*CELL_SIZE && newY == j * CELL_SIZE) {
-                                return newDir;
+                    // Mouse found?
+                    for (int j = 0; j < N_COLS; j++) {
+                        for (int i = 0; i < N_ROWS; i++) {
+                            if (Field[j][i] >= target) {
+                                if (newX == i && newY == j) {
+                                    return newDir;
+                                }
                             }
                         }
                     }
-                }
 
-                // Is there a path in the direction (= is it a free field in the labyrinth)?
-                // And has that field not yet been discovered?
-                if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) && !discovered[newY][newX]) {
-                    // "Discover" and enqueue that field
-                    discovered[newY][newX] = true;
-                    queue.add(new Node(newX, newY, newDir));
+
+                    // Is there a path in the direction (= is it a free field in the labyrinth)?
+                    // And has that field not yet been discovered?
+                    if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) && !discovered[newY][newX]) {
+                        // "Discover" and enqueue that field
+                        discovered[newY][newX] = true;
+                        queue.add(new Node(newX, newY, newDir));
+                    }
                 }
             }
         }
@@ -228,28 +238,59 @@ public class levelBoard extends JPanel {
         }
     }
     private void doGameCycle() {
+
         if (inGame) {
             updateWave(level);
             fightOrFlight();
         }
-        repaint();
+        if (doRepaint) {
+            repaint();
+        }
     }
     private void fightOrFlight() {
-         for (int j = 0; j < N_COLS; j++) {
-                    for (int i = 0; i < N_ROWS; i++) {
+         for (int j = 0; j < N_ROWS; j++) {
+                    for (int i = 0; i < N_COLS; i++) {
                          if (enemies [j][i] != null) {
-                             current_enemy = enemies [j][i];
-                       
+                             enemy current_enemy = enemies[j][i];
+                             current_enemy.setAttacking(false);
+                             statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "           " + "We have moved " + number + " times" );
                             for (Direction dir : Direction.values()) {
-                                if (Field[j + dir.getDy()*CELL_SIZE*current_enemy.getRange()][i + dir.getDx()*CELL_SIZE*current_enemy.getRange()] >= 3){
-                                   current_enemy.resetSpeedTimer();
-                                   current_enemy.updateAttackTimer(DELTA_TIME); 
-                                   if (current_enemy.getAttackTimer % current_enemy.getAttack_Speed == 0){
-                                        
-                                   }
+                                if (j + dir.getDy()*current_enemy.getRange() >= 0 &&
+                                        j + dir.getDy()*current_enemy.getRange() <= N_COLS &&
+                                        i + dir.getDx()*current_enemy.getRange() >= 0 &&
+                                        i + dir.getDx()*current_enemy.getRange() <= N_ROWS){
+
+                                    if (Field[j + dir.getDy()* current_enemy.getRange()][i + dir.getDx()* current_enemy.getRange()] >= 3 && !current_enemy.isAttacking()) {
+                                        current_enemy.setAttacking(true);
+                                        current_enemy.setDirection(dir);
+                                    current_enemy.updateAttackTimer(PERIOD);
+                                    if (current_enemy.getAttackTimer() == current_enemy.getAttack_speed()) {
+                                        if (Field[j + dir.getDy() * CELL_SIZE * current_enemy.getRange()][i + dir.getDx() * CELL_SIZE * current_enemy.getRange()] == 5) {
+                                            CURRENT_HEALTH -= current_enemy.getDamage();
+                                        }
+                                    }
+                                }
+                                }
+                            }
+                            if (!current_enemy.isAttacking()){
+                                current_enemy.resetAttackTimer();
+                                if (!current_enemy.isMoving()) {
+                                    current_enemy.setDirection(findShortestPathToTarget(Field, i, j, current_enemy.getTargeting()));
+                                    current_enemy.setMoving(true);
+                                }
+                                current_enemy.move();
+                                if (current_enemy.getDistanceCounted() >= CELL_SIZE){
+                                    current_enemy.resetDistanceCounted();
+                                    current_enemy.setMoving(false);
+                                    enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new enemy(current_enemy.getX(), current_enemy.getY(), current_enemy.getEnemyType(),current_enemy.getHealth());
+                                    Field [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = ENEMY_CELL;
+                                    Field [j][i] = 0;
+                                    enemies [j][i] = null;
+                                    number += 1;
                                 }
                             }
                         }
+                         repaint();
                     }
          }
         
@@ -257,8 +298,9 @@ public class levelBoard extends JPanel {
     private void updateWave(int level) {
         if (level == 1) {
             if (CURRENT_WAVE == 1){
-                if (SECONDS_PASSED == 10){
-                    enemies[5][0] = new farmer(0,5* CELL_SIZE);
+                if (MILLISECONDS_PASSED >= 10000 && MILLISECONDS_PASSED <= 10020){
+                    enemies[5][0] = new enemy(0,5* CELL_SIZE, "farmer", 30);
+                    enemies[5][0].initFarmer();
                     Field [5][0] = ENEMY_CELL;
                 }
             }
@@ -268,7 +310,7 @@ public class levelBoard extends JPanel {
     private class GameCycle implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            SECONDS_PASSED = SECONDS_PASSED + DELTA_TIME;
+            MILLISECONDS_PASSED = MILLISECONDS_PASSED +PERIOD;
             doGameCycle();
         }
     }

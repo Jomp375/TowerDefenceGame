@@ -1,34 +1,57 @@
 package game.Tower_Defence_Game.level;
 
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
 
 import static java.awt.Image.SCALE_DEFAULT;
 
 public class enemy {
-    protected double x;
-    protected double y;
+    protected int x;
+    protected int y;
     protected int width;
     protected int height;
     protected boolean visible;
     protected Image image;
+    protected int max_health;
     protected int health;
     protected int damage;
-    protected double speed;
+    protected int speed;
+    protected double acc_speed;
     protected int range;
     protected double attack_speed;
     protected int attack_size;
     protected int value;
     protected int targeting;
-    protected double internal_speed_timer;
+    protected double distanceCounted;
     protected double internal_attack_timer;
     protected levelBoard.Direction direction = levelBoard.Direction.DOWN;
+    protected double lackedMovement;
+    protected String enemyType;
+    protected boolean isMoving = false;
+    protected boolean isAttacking;
 
-    public enemy(double x, double y) {
+
+    public enemy(int x, int y, String enemyType, int health) {
         this.x = x;
         this.y = y;
+        this.enemyType = enemyType;
+        this.health = health;
         visible = true;
+    }
+    public void initFarmer () {
+        if (enemyType == "farmer") {
+            updateImage("src/recources/level_elements/Enemies/farmer", direction);
+            getImageDimensions();
+            max_health = 30;
+            damage = 7;
+            attack_speed = 760;
+            speed = 1;
+            acc_speed = 1.8;
+            range = 1;
+            value = 15;
+            targeting = 5;
+            enemyType = "farmer";
+        }
     }
 
     protected void updateImage(String imageName, levelBoard.Direction direction) {
@@ -59,6 +82,19 @@ public class enemy {
         image = imageIcon.getImage().getScaledInstance(width, height, SCALE_DEFAULT);
     }
 
+    public boolean isAttacking() {
+        return isAttacking;
+    }
+
+    public boolean isMoving() {
+        return isMoving;
+    }
+    public void setMoving(boolean isMoving){
+        this.isMoving = isMoving;
+    }
+    public void setAttacking(boolean isAttacking){
+        this.isAttacking = isAttacking;
+    }
 
     protected void getImageDimensions() {
         if (width == 0) {
@@ -71,15 +107,16 @@ public class enemy {
         this.direction = direction;
     }
 
-//    public Image getImage(levelBoard.Direction direction) {
-//        return image;
-//    }
+    public Image getImage() {
+       updateImage("src/recources/level_elements/Enemies/"+ enemyType + "/" + enemyType, direction);
+       return image;
+    }
 
-    public double getX() {
+    public int getX() {
         return x;
     }
 
-    public double getY() {
+    public int getY() {
         return y;
     }
 
@@ -90,8 +127,27 @@ public class enemy {
     public void setVisible(Boolean visible) {
         this.visible = visible;
     }
+    public void move () {
+        if (lackedMovement >= 1) {
+            x +=  (speed + 1)* direction.getDx();
+            y +=  (speed + 1)* direction.getDy();
+            lackedMovement -= 1;
+            distanceCounted += speed + 1;
 
-    public void setXY(double x, double y) {
+        } else {
+            x +=  speed * direction.getDx();
+            y +=  speed * direction.getDy();
+            lackedMovement += acc_speed - speed;
+            distanceCounted += speed ;
+        }
+
+    }
+
+    public double getDistanceCounted() {
+        return distanceCounted;
+    }
+
+    public void setXY(int x, int y) {
         this.x = x;
         this.y = y;
     }
@@ -104,6 +160,12 @@ public class enemy {
     }
     public int getRange(){
         return range;
+    }
+    public double getLackedMovement() {
+        return lackedMovement;
+    }
+    public void updateLackedMovement (double increase){
+        lackedMovement = lackedMovement + increase;
     }
 
     public double getAttack_speed() {
@@ -129,22 +191,31 @@ public class enemy {
     public void setHealth(int health) {
         this.health = health;
     }
-    public void resetSpeedTimer (){
-        internal_speed_timer = 0;
-    }
-    public void resetAttackTimer (){
+
+    public void resetAttackTimer () {
         internal_attack_timer = 0;
-    }
-    public void updateSpeedTimer (double increase){
-        internal_speed_timer = internal_speed_timer + increase;
     }
     public void updateAttackTimer (double increase){
         internal_attack_timer = internal_attack_timer + increase;
     }
-    public double getSpeedTimer() {
-        return internal_speed_timer;
-    }
+
     public double getAttackTimer() {
         return internal_attack_timer;
+    }
+
+    public int getMax_health() {
+        return max_health;
+    }
+
+    public String getEnemyType() {
+        return enemyType;
+    }
+
+    public levelBoard.Direction getDirection() {
+        return direction;
+    }
+
+    public void resetDistanceCounted() {
+        distanceCounted = 0;
     }
 }
