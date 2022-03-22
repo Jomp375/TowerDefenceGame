@@ -20,6 +20,7 @@ public class levelBoard extends JPanel {
     private final int MAIN_BASE_CELL = 5;
     private final int N_ROWS = 25;
     private final int N_COLS = 13;
+    private final double DELTA_TIME = 0.1;
     private final int BOARD_WIDTH = N_ROWS * CELL_SIZE + 1;
     private final int BOARD_HEIGHT = N_COLS * CELL_SIZE + 10;
     private enemy current_enemy;
@@ -263,7 +264,7 @@ public class levelBoard extends JPanel {
     private class GameCycle implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            SECONDS_PASSED = SECONDS_PASSED + 0.1;
+            SECONDS_PASSED = SECONDS_PASSED + DELTA_TIME;
             doGameCycle();
         }
     }
