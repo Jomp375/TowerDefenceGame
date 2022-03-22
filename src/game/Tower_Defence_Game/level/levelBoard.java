@@ -241,7 +241,7 @@ public class levelBoard extends JPanel {
                              current_enemy = enemies [j][i];
                        
                             for (Direction dir : Direction.values()) {
-                                if (Field[j + dir.getDy()*CELL_SIZE*current_enemy.getRange()][i + dir.getDx()*CELL_SIZE*current_enemy.getRange()] == 5){
+                                if (Field[j + dir.getDy()*CELL_SIZE*current_enemy.getRange()][i + dir.getDx()*CELL_SIZE*current_enemy.getRange()] >= 3){
                                     
                                 }
                             }
