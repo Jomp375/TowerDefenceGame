@@ -129,6 +129,12 @@ public class enemy {
     public void setHealth(int health) {
         this.health = health;
     }
+    public void resetSpeedTimer (){
+        internal_speed_timer = 0;
+    }
+    public void resetAttackTimer (){
+        internal_attack_timer = 0;
+    }
     public void updateSpeedTimer (double increase){
         internal_speed_timer = internal_speed_timer + increase;
     }
