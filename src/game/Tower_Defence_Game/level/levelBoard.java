@@ -16,12 +16,13 @@ public class levelBoard extends JPanel {
     private final int CELL_SIZE = 60;
     private final int EMPTY_CELL = 0;
     private final int ROCK_CELL = 2;
-    private final int ENEMY_CELL = 3;
+    private final int ENEMY_CELL = 1;
     private final int MAIN_BASE_CELL = 5;
     private final int N_ROWS = 25;
     private final int N_COLS = 13;
     private final int BOARD_WIDTH = N_ROWS * CELL_SIZE + 1;
     private final int BOARD_HEIGHT = N_COLS * CELL_SIZE + 10;
+    private enemy current_enemy;
     private boolean inGame;
     private Image[] img;
     private final JLabel statusbar;
@@ -33,7 +34,7 @@ public class levelBoard extends JPanel {
     private int money = startMoney;
 
     private int CURRENT_WAVE = 1;
-    private int timer = 0;
+    private int SECONDS_PASSED = 0;
     private final int AMOUNT_OF_WAVES = 7;
 
     public int MAX_HEALTH = 2000;
@@ -180,7 +181,7 @@ public class levelBoard extends JPanel {
 
                 // Is there a path in the direction (= is it a free field in the labyrinth)?
                 // And has that field not yet been discovered?
-                if (lab[newY][newX] != ROCK_CELL && !discovered[newY][newX]) {
+                if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) && !discovered[newY][newX]) {
                     // "Discover" and enqueue that field
                     discovered[newY][newX] = true;
                     queue.add(new Node(newX, newY, newDir));
@@ -228,25 +229,41 @@ public class levelBoard extends JPanel {
     private void doGameCycle() {
         if (inGame) {
             updateWave(level);
+            fightOrFlight();
         }
         repaint();
     }
-
+    private void fightOrFlight() {
+         for (int j = 0; j < N_COLS; j++) {
+                    for (int i = 0; i < N_ROWS; i++) {
+                         if (enemies [j][i] != null) {
+                             current_enemy = enemies [j][i];
+                       
+                            for (Direction dir : Direction.values()) {
+                                if (Field[j + dir.getDy()*CELL_SIZE*current_enemy.getRange()][i + dir.getDx()*CELL_SIZE*current_enemy.getRange()] == 5){
+                                    
+                                }
+                            }
+                        }
+                    }
+         }
+        
+    }
     private void updateWave(int level) {
         if (level == 1) {
             if (CURRENT_WAVE == 1){
-                if (timer == 10){
+                if (SECONDS_PASSED == 10){
                     enemies[5][0] = new farmer(0,5* CELL_SIZE);
                     Field [5][0] = ENEMY_CELL;
                 }
             }
         }
-        timer ++;
     }
 
     private class GameCycle implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
+            SECONDS_PASSED = SECONDS_PASSED + 0.1;
             doGameCycle();
         }
     }
