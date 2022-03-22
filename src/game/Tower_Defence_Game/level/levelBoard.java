@@ -242,7 +242,11 @@ public class levelBoard extends JPanel {
                        
                             for (Direction dir : Direction.values()) {
                                 if (Field[j + dir.getDy()*CELL_SIZE*current_enemy.getRange()][i + dir.getDx()*CELL_SIZE*current_enemy.getRange()] >= 3){
-                                    
+                                   current_enemy.resetSpeedTimer();
+                                   current_enemy.updateAttackTimer(DELTA_TIME); 
+                                   if (current_enemy.getAttackTimer % current_enemy.getAttack_Speed == 0){
+                                        
+                                   }
                                 }
                             }
                         }
