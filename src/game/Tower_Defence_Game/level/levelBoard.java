@@ -1,6 +1,10 @@
 package game.Tower_Defence_Game.level;
 
+import game.Tower_Defence_Game.level.enemies.farmer;
+
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.*;
@@ -9,12 +13,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 public class levelBoard extends JPanel {
-    private final int CELL_SIZE = 40;
+    private final int CELL_SIZE = 60;
     private final int EMPTY_CELL = 0;
     private final int ROCK_CELL = 2;
+    private final int ENEMY_CELL = 3;
     private final int MAIN_BASE_CELL = 5;
-    private final int N_ROWS = 30;
-    private final int N_COLS = 19;
+    private final int N_ROWS = 25;
+    private final int N_COLS = 13;
     private final int BOARD_WIDTH = N_ROWS * CELL_SIZE + 1;
     private final int BOARD_HEIGHT = N_COLS * CELL_SIZE + 10;
     private boolean inGame;
@@ -22,11 +27,13 @@ public class levelBoard extends JPanel {
     private final JLabel statusbar;
     public int level;
     public int[][] Field = new int[N_ROWS][ N_COLS ];
+    public enemy [][] enemies = new enemy [N_ROWS][ N_COLS ];
     private final ArrayList<Main_base> mainBaseCellsList = new ArrayList<Main_base>();
     private final int startMoney = 200;
     private int money = startMoney;
 
     private int CURRENT_WAVE = 1;
+    private int timer = 0;
     private final int AMOUNT_OF_WAVES = 7;
 
     public int MAX_HEALTH = 2000;
@@ -58,17 +65,17 @@ public class levelBoard extends JPanel {
         ImageIcon rock = new ImageIcon("src/recources/level_elements/Rock.png");
         ImageIcon empty = new ImageIcon("src/recources/level_elements/empty.png");
         ImageIcon base = new ImageIcon("src/recources/level_elements/main_base.png");
-        for (int i = 0; i < Field.length; i++) {
-            for (int j = 0; j < Field[i].length; j++) {
-                if (Field[i][j] == EMPTY_CELL) {
+        for (int j = 0; j < N_COLS; j++) {
+            for (int i = 0; i < N_ROWS; i++) {
+                if (Field[j][i] == EMPTY_CELL) {
                    g2d.drawImage(empty.getImage(), i * CELL_SIZE,
                             j * CELL_SIZE, this);
 
-                } else if (Field[i][j] == ROCK_CELL) {
+                } else if (Field[j][i] == ROCK_CELL) {
 
                     g2d.drawImage(rock.getImage(), i * CELL_SIZE,
                             j * CELL_SIZE, this);
-                } else if (Field[i][j] == MAIN_BASE_CELL && isFirstBase) {
+                } else if (Field[j][i] == MAIN_BASE_CELL && isFirstBase) {
                     g2d.drawImage(base.getImage(),i * CELL_SIZE,
                             j * CELL_SIZE, this);
                     isFirstBase = false;
@@ -106,19 +113,21 @@ public class levelBoard extends JPanel {
 
         private void setLevelLayOut(int level) {
             if (level == 1) {
-                for (int i = 0; i < Field.length; i++) {
-                    for (int j = 0; j < Field[i].length; j++) {
-                        if ((j <=1 || j >= 17 || (j >=10 && j <=12)) && i <=15 && i >= 13){
-                            Field [i][j] = ROCK_CELL;
-                        }else if ((j == 5 || j == 13)&& i <= 22){
-                            Field [i][j] = ROCK_CELL;
-                        } else if (((j >= 3 && j <= 8)|| (j >= 13 && j <= 15))&& i >= 5 && i <= 7){
-                            Field [i][j] = ROCK_CELL;
-                        } else if ((j >= 8 && j <= 10) && i >= 27){
-                            Field [i][j] = MAIN_BASE_CELL;
-                        }
-                    }
-                }
+
+                Field = new int[][]{{2,2,2,2,2,2,2,2,0,0,0,0,0,2,2,2,2,2,2,2,2,2,2,0,0},
+                                    {2,2,2,2,2,2,2,2,2,0,0,0,0,0,0,2,2,2,2,2,2,2,2,0,0},
+                                    {2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,2,2,2,2,2,2,2,0,0,0},
+                                    {0,0,0,0,2,2,2,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+                                    {0,0,0,0,0,2,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+                                    {0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5},
+                                    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5},
+                                    {2,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,5,5,5},
+                                    {2,2,2,0,0,0,0,0,0,0,0,2,0,0,0,2,2,0,0,0,0,0,0,0,0},
+                                    {0,2,2,2,2,0,0,0,0,2,2,0,0,0,0,2,2,2,0,0,0,0,0,0,0},
+                                    {0,0,0,2,2,2,2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0,0,0,0},
+                                    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0},
+                                    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0}};
+
             }
         }
     /**
@@ -127,12 +136,11 @@ public class levelBoard extends JPanel {
      * @param lab the labyrinth's matrix with walls indicated by {@code true}
      * @param cx the cat's X coordinate
      * @param cy the cat's Y coordinate
-     * @param mx the mouse's X coordinate
-     * @param my the mouse's Y coordinate
+
      * @return the direction of the shortest path
      */
-    private Direction findShortestPathToMouse
-    (int[][] lab, int cx, int cy, int mx, int my) {
+    private Direction findShortestPathToTarget
+    (int[][] lab, int cx, int cy, int target) {
         // Create a queue for all nodes we will process in breadth-first order.
         // Each node is a data structure containing the cat's position and the
         // initial direction it took to reach this point.
@@ -155,13 +163,19 @@ public class levelBoard extends JPanel {
 
             // Go breath-first into each direction
             for (Direction dir : Direction.values()) {
-                int newX = node.x + dir.getDx();
-                int newY = node.y + dir.getDy();
+                int newX = node.x + dir.getDx()*CELL_SIZE;
+                int newY = node.y + dir.getDy()*CELL_SIZE;
                 Direction newDir = node.initialDir == null ? dir : node.initialDir;
 
                 // Mouse found?
-                if (newX == mx && newY == my) {
-                    return newDir;
+                for (int j = 0; j < N_COLS; j++) {
+                    for (int i = 0; i < N_ROWS; i++) {
+                        if (Field [j][i] >= target) {
+                            if (newX == i*CELL_SIZE && newY == j * CELL_SIZE) {
+                                return newDir;
+                            }
+                        }
+                    }
                 }
 
                 // Is there a path in the direction (= is it a free field in the labyrinth)?
@@ -211,5 +225,29 @@ public class levelBoard extends JPanel {
             return dy;
         }
     }
+    private void doGameCycle() {
+        if (inGame) {
+            updateWave(level);
+        }
+        repaint();
+    }
 
+    private void updateWave(int level) {
+        if (level == 1) {
+            if (CURRENT_WAVE == 1){
+                if (timer == 10){
+                    enemies[5][0] = new farmer(0,5* CELL_SIZE);
+                    Field [5][0] = ENEMY_CELL;
+                }
+            }
+        }
+        timer ++;
+    }
+
+    private class GameCycle implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            doGameCycle();
+        }
+    }
     }

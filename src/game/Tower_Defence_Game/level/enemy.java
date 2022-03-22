@@ -29,12 +29,23 @@ public class enemy {
         visible = true;
     }
 
-    protected void loadImage(String imageName) {
-        ImageIcon imageIcon = new ImageIcon(imageName);
+    protected void updateImage(String imageName, levelBoard.Direction direction) {
+        ImageIcon imageIcon = new ImageIcon(imageName + "_"+toString(direction) + ".png");
 
         image = imageIcon.getImage();
 
         getImageDimensions();
+    }
+
+    private String toString(levelBoard.Direction direction) {
+        if (direction == levelBoard.Direction.DOWN){
+            return "DOWN";
+        } else if (direction == levelBoard.Direction.UP){
+            return "UP";
+        } else if (direction == levelBoard.Direction.RIGHT){
+            return "RIGHT";
+        } else
+            return "LEFT";
     }
 
     protected void loadImage(String imageName, int width, int height) {
@@ -58,9 +69,9 @@ public class enemy {
         this.direction = direction;
     }
 
-    public Image getImage() {
-        return image;
-    }
+//    public Image getImage(levelBoard.Direction direction) {
+//        return image;
+//    }
 
     public double getX() {
         return x;

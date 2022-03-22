@@ -6,7 +6,7 @@ public class farmer extends enemy {
         super(x, y);
     }
     public void initFarmer () {
-        loadImage("src/recources/level_elements/Enemies/farmer.png");
+        updateImage("src/recources/level_elements/Enemies/farmer", direction);
         getImageDimensions();
         health = 30;
         damage = 7;
