@@ -124,6 +124,9 @@ public class enemy {
     public boolean isVisible() {
         return visible;
     }
+    public void damage (int damage){
+        health -= damage;
+    }
 
     public void setVisible(Boolean visible) {
         this.visible = visible;

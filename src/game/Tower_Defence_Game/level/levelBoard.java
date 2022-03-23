@@ -13,6 +13,7 @@ import javax.swing.Timer;
 
 public class levelBoard extends JPanel {
     private final int CELL_SIZE = 60;
+    private final int MOVING_CELL = -1;
     private final int EMPTY_CELL = 0;
     private final int ROCK_CELL = 2;
     private final int ENEMY_CELL = 1;
@@ -25,18 +26,20 @@ public class levelBoard extends JPanel {
     private final int BOARD_HEIGHT = N_COLS * CELL_SIZE + 10;
     private boolean inGame;
     private boolean doRepaint = true;
-    private final JLabel statusbar;
+    private JLabel statusbar;
     public int level;
     public int[][] Field = new int[N_COLS][N_ROWS];
     public enemy [][] enemies = new enemy [N_COLS][ N_ROWS ];
+    public healthbar[][] healthbars = new healthbar[N_COLS][N_ROWS];
     private final int startMoney = 200;
     private int money = startMoney;
     private int number = 1;
     private int CURRENT_WAVE = 1;
     private double MILLISECONDS_PASSED = 0;
     private final int AMOUNT_OF_WAVES = 7;
+    private ArrayList<HitEffect> hitEffects = new ArrayList<HitEffect>();
 
-    public int MAX_HEALTH = 2000;
+    public int MAX_HEALTH = 500;
     public int CURRENT_HEALTH = MAX_HEALTH;
     public levelBoard(JLabel statusbar, int level) {
         this.statusbar = statusbar;
@@ -53,7 +56,16 @@ public class levelBoard extends JPanel {
         newGame();
     }
     private void newGame() {
-        int cell;
+        MAX_HEALTH = 500;
+        CURRENT_HEALTH = MAX_HEALTH;
+        MILLISECONDS_PASSED = 0;
+        for (int j = 0; j < N_COLS; j++) {
+            for (int i = 0; i < N_ROWS; i++) {
+                enemies[j][i] = null;
+                healthbars[j][i]= null;
+            }
+        }
+        money = startMoney;
         var random = new Random();
         inGame = true;
         statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "            Money: " +money + "$                  health: " + CURRENT_HEALTH + " / " + MAX_HEALTH  );
@@ -70,36 +82,42 @@ public class levelBoard extends JPanel {
         ImageIcon rock = new ImageIcon("src/recources/level_elements/Rock.png");
         ImageIcon empty = new ImageIcon("src/recources/level_elements/empty.png");
         ImageIcon base = new ImageIcon("src/recources/level_elements/main_base.png");
-        for (int j = 0; j < N_COLS; j++) {
-            for (int i = 0; i < N_ROWS; i++) {
-                if (Field[j][i] == EMPTY_CELL) {
-//                   g2d.drawImage(empty.getImage(), i * CELL_SIZE,
-//                            j * CELL_SIZE, this);
-
-                } else if (Field[j][i] == ROCK_CELL) {
-
-                    g2d.drawImage(rock.getImage(), i * CELL_SIZE,
+        if (inGame) {
+            for (int j = 0; j < N_COLS; j++) {
+                for (int i = 0; i < N_ROWS; i++) {
+                    if (healthbars[j][i] != null) {
+                        g2d.drawImage(healthbars[j][i].getImage(), healthbars[j][i].getX(), healthbars[j][i].getY(), this);
+                    }
+                    if (Field[j][i] == EMPTY_CELL) {
+                   g2d.drawImage(empty.getImage(), i * CELL_SIZE,
                             j * CELL_SIZE, this);
-                } else if (Field[j][i] == MAIN_BASE_CELL && isFirstBase) {
-                    g2d.drawImage(base.getImage(),i * CELL_SIZE,
-                            j * CELL_SIZE, this);
-                    isFirstBase = false;
-                }
-                if (enemies [j][i] != null) {
-                    current_enemy = enemies [j][i];
-                    g2d.drawImage(current_enemy.getImage(),
-                            current_enemy.getX(),
-                            current_enemy.getY(),
-                            this);
+
+                    } else if (Field[j][i] == ROCK_CELL) {
+
+                        g2d.drawImage(rock.getImage(), i * CELL_SIZE,
+                                j * CELL_SIZE, this);
+                    } else if (Field[j][i] == MAIN_BASE_CELL && isFirstBase) {
+                        g2d.drawImage(base.getImage(), i * CELL_SIZE,
+                                j * CELL_SIZE, this);
+                        isFirstBase = false;
+                    }
+                    if (enemies[j][i] != null) {
+                        current_enemy = enemies[j][i];
+                        g2d.drawImage(current_enemy.getImage(),
+                                current_enemy.getX(),
+                                current_enemy.getY(),
+                                this);
+                    }
                 }
             }
-        }
-//        drawBase(g);
-        if ( inGame && isFirstBase) {
-            inGame = false;
-            statusbar.setText("Game won");
-        } else if (!inGame) {
-            statusbar.setText("Game lost");
+            for (int i = 0; i < hitEffects.size(); i++) {
+                g2d.drawImage(hitEffects.get(i).getImage(), hitEffects.get(i).getX(),
+                        hitEffects.get(i).getY(), this);
+                hitEffects.get(i).updateAge();
+                if (hitEffects.get(i).getAge() >= 10) {
+                    hitEffects.remove(i);
+                }
+            }
         }
     }
     private class MinesAdapter extends MouseAdapter {
@@ -109,6 +127,17 @@ public class levelBoard extends JPanel {
             int y = e.getY();
             int cCol = x / CELL_SIZE;
             int cRow = y / CELL_SIZE;
+            if (enemies [cRow][cCol] != null){
+                enemies[cRow][cCol].damage(1);
+                healthbars[cRow][cCol].updateHealthbar(1);
+                hitEffects.add(new HitEffect(x, y, 1));
+                if (enemies[cRow][cCol].getHealth() <= 0){
+                    money += enemies[cRow][cCol].getValue();
+                    enemies[cRow][cCol] = null;
+                    healthbars[cRow][cCol] = null;
+                    Field[cRow][cCol] = 0;
+                }
+            }
             if (!inGame) {
                 newGame();
                 repaint();
@@ -192,7 +221,7 @@ public class levelBoard extends JPanel {
 
                     // Is there a path in the direction (= is it a free field in the labyrinth)?
                     // And has that field not yet been discovered?
-                    if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) && !discovered[newY][newX]) {
+                    if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) && lab[newY][newX] != MOVING_CELL && !discovered[newY][newX]) {
                         // "Discover" and enqueue that field
                         discovered[newY][newX] = true;
                         queue.add(new Node(newX, newY, newDir));
@@ -242,12 +271,45 @@ public class levelBoard extends JPanel {
 
         if (inGame) {
             updateWave(level);
+            cleanBoard();
             fightOrFlight();
+            updateStatusbar();
+            if (CURRENT_HEALTH <= 0){
+                gameover();
+            }
         }
         if (doRepaint) {
             repaint();
         }
-        updateStatusbar();
+
+    }
+
+    private void cleanBoard() {
+        for (int j = 0; j < N_COLS; j++) {
+            for (int i = 0; i < N_ROWS; i++) {
+                if (Field[j][i] == MOVING_CELL) {
+                    boolean hasEnemy = false;
+                    for (Direction dir : Direction.values()) {
+                        if     (j + dir.getDy() >= 0 &&
+                                j + dir.getDy() < N_COLS &&
+                                i + dir.getDx() >= 0 &&
+                                i + dir.getDx() < N_ROWS){
+                        if (enemies [j + dir.getDy()][i + dir.getDx()] != null){
+                            hasEnemy = true;
+                        }
+                    }
+                    }
+                    if (!hasEnemy){
+                        Field[j][i] = EMPTY_CELL;
+                    }
+                }
+            }
+            }
+    }
+
+    private void gameover() {
+        statusbar.setText("Game over. You have lost. Click to restart.                                                      tip: dont let enemies get to the main base");
+        inGame = false;
     }
 
     private void updateStatusbar() {
@@ -262,7 +324,7 @@ public class levelBoard extends JPanel {
                              current_enemy.setAttacking(false);
 
                             for (Direction dir : Direction.values()) {
-                                if (j + dir.getDy()*current_enemy.getRange() >= 0 &&
+                                if     (j + dir.getDy()*current_enemy.getRange() >= 0 &&
                                         j + dir.getDy()*current_enemy.getRange() < N_COLS &&
                                         i + dir.getDx()*current_enemy.getRange() >= 0 &&
                                         i + dir.getDx()*current_enemy.getRange() < N_ROWS){
@@ -274,7 +336,7 @@ public class levelBoard extends JPanel {
                                     if (current_enemy.getAttackTimer() >= current_enemy.getAttack_speed()) {
                                         if (Field[j + dir.getDy() * current_enemy.getRange()][i + dir.getDx() * current_enemy.getRange()] == 5) {
                                             CURRENT_HEALTH -= current_enemy.getDamage();
-
+                                            hitEffects.add(new HitEffect((i + dir.getDx()* current_enemy.getRange())*CELL_SIZE,(j + dir.getDy()* current_enemy.getRange())*CELL_SIZE,current_enemy.getDirection(),current_enemy.getDamage()));
                                         }
                                         current_enemy.resetAttackTimer();
                                     }
@@ -286,17 +348,21 @@ public class levelBoard extends JPanel {
                                 if (!current_enemy.isMoving()) {
                                     current_enemy.setDirection(findShortestPathToTarget(Field, i, j, current_enemy.getTargeting()));
                                     current_enemy.setMoving(true);
+                                    Field [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = MOVING_CELL;
                                 }
+
                                 current_enemy.move();
+                                healthbars[j][i].move(current_enemy);
                                 if (current_enemy.getDistanceCounted() >= CELL_SIZE){
                                     current_enemy.resetDistanceCounted();
                                     current_enemy.setMoving(false);
+                                    healthbars [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new healthbar(healthbars[j][i].getX(),healthbars[j][i].getY(),healthbars[j][i].getHealth(), healthbars[j][i].getMaxHealth());
                                     enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new enemy(current_enemy.getX(), current_enemy.getY(), current_enemy.getEnemyType(),current_enemy.getHealth(), current_enemy.getDirection());
                                     enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()].initEnemy();
                                     Field [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = ENEMY_CELL;
                                     Field [j][i] = 0;
                                     enemies [j][i] = null;
-                                    number += 1;
+                                    healthbars [j][i] = null;
                                 }
                             }
                         }
@@ -305,23 +371,83 @@ public class levelBoard extends JPanel {
          }
         
     }
+
+
     private void updateWave(int level) {
         if (level == 1) {
-            if (CURRENT_WAVE == 1){
-                if (MILLISECONDS_PASSED >= 10000 && MILLISECONDS_PASSED <= 10020){
-                    enemies[5][0] = new enemy(0,5* CELL_SIZE, "farmer", 30, Direction.RIGHT);
+            if (CURRENT_WAVE == 1) {
+                if (MILLISECONDS_PASSED >= 10000 && MILLISECONDS_PASSED <= 10020) {
+                    enemies[5][0] = new enemy(0, 5 * CELL_SIZE, "farmer", 30, Direction.LEFT);
                     enemies[5][0].initEnemy();
-                    Field [5][0] = ENEMY_CELL;
+                    healthbars[5][0] = new healthbar(0, 5 * CELL_SIZE - 20, enemies[5][0].getHealth(), enemies[5][0].getMax_health());
+                    Field[5][0] = ENEMY_CELL;
                 }
-                if (MILLISECONDS_PASSED >= 20000 && MILLISECONDS_PASSED <= 20020){
-                    enemies[3][0] = new enemy(0,3* CELL_SIZE, "farmer", 30, Direction.RIGHT);
+                if (MILLISECONDS_PASSED >= 20000 && MILLISECONDS_PASSED <= 20020) {
+                    enemies[3][0] = new enemy(0, 3 * CELL_SIZE, "farmer", 30, Direction.LEFT);
                     enemies[3][0].initEnemy();
-                    Field [3][0] = ENEMY_CELL;
+                    healthbars[3][0] = new healthbar(0, 3 * CELL_SIZE - 20, enemies[3][0].getHealth(), enemies[3][0].getMax_health());
+                    Field[3][0] = ENEMY_CELL;
                 }
-                if (MILLISECONDS_PASSED >= 23000 && MILLISECONDS_PASSED <= 23020){
-                    enemies[12][0] = new enemy(0,12* CELL_SIZE, "farmer", 30, Direction.RIGHT);
+                if (MILLISECONDS_PASSED >= 23000 && MILLISECONDS_PASSED <= 23020) {
+                    enemies[12][0] = new enemy(0, 12 * CELL_SIZE, "farmer", 30, Direction.LEFT);
                     enemies[12][0].initEnemy();
-                    Field [12][0] = ENEMY_CELL;
+                    healthbars[12][0] = new healthbar(0, 12 * CELL_SIZE - 20, enemies[12][0].getHealth(), enemies[12][0].getMax_health());
+                    Field[12][0] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 40000 && MILLISECONDS_PASSED <= 40020) {
+                    CURRENT_WAVE = 2;
+                    MILLISECONDS_PASSED = 0;
+                }
+            }
+            if (CURRENT_WAVE == 2) {
+                if (MILLISECONDS_PASSED >= 100 && MILLISECONDS_PASSED <= 120) {
+                    enemies[6][0] = new enemy(0, 6 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[6][0].initEnemy();
+                    healthbars[6][0] = new healthbar(0, 6 * CELL_SIZE - 20, enemies[6][0].getHealth(), enemies[6][0].getMax_health());
+                    Field[6][0] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 2500 && MILLISECONDS_PASSED <= 2520) {
+                    enemies[11][0] = new enemy(0, 11 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[11][0].initEnemy();
+                    healthbars[11][0] = new healthbar(0, 11 * CELL_SIZE - 20, enemies[11][0].getHealth(), enemies[11][0].getMax_health());
+                    Field[11][0] = ENEMY_CELL;
+
+                }
+                if (MILLISECONDS_PASSED >= 3200 && MILLISECONDS_PASSED <= 3220) {
+                    enemies[12][0] = new enemy(0, 12 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[12][0].initEnemy();
+                    healthbars[12][0] = new healthbar(0, 12 * CELL_SIZE - 20, enemies[12][0].getHealth(), enemies[12][0].getMax_health());
+                    Field[12][0] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 4700 && MILLISECONDS_PASSED <= 4720) {
+                    enemies[3][0] = new enemy(0, 3 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[3][0].initEnemy();
+                    healthbars[3][0] = new healthbar(0, 3 * CELL_SIZE - 20, enemies[3][0].getHealth(), enemies[3][0].getMax_health());
+                    Field[3][0] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 9200 && MILLISECONDS_PASSED <= 9220) {
+                    enemies[6][0] = new enemy(0, 6 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[6][0].initEnemy();
+                    healthbars[6][0] = new healthbar(0, 6 * CELL_SIZE - 20, enemies[6][0].getHealth(), enemies[6][0].getMax_health());
+                    Field[6][0] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 25000 && MILLISECONDS_PASSED <= 25020) {
+                    enemies[3][0] = new enemy(0, 3 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[3][0].initEnemy();
+                    healthbars[3][0] = new healthbar(0, 3 * CELL_SIZE - 20, enemies[3][0].getHealth(), enemies[3][0].getMax_health());
+                    Field[3][0] = ENEMY_CELL;
+                    enemies[5][0] = new enemy(0, 5 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[5][0].initEnemy();
+                    healthbars[5][0] = new healthbar(0, 5 * CELL_SIZE - 20, enemies[5][0].getHealth(), enemies[5][0].getMax_health());
+                    Field[5][0] = ENEMY_CELL;
+                    enemies[7][1] = new enemy(CELL_SIZE, 7 * CELL_SIZE, "farmer", 30, Direction.LEFT);
+                    enemies[7][1].initEnemy();
+                    healthbars[7][1] = new healthbar(CELL_SIZE, 7 * CELL_SIZE - 20, enemies[7][1].getHealth(), enemies[7][1].getMax_health());
+                    Field[7][1] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 60000 && MILLISECONDS_PASSED <= 60020) {
+                    CURRENT_WAVE = 3;
+                    MILLISECONDS_PASSED = 0;
                 }
             }
         }
