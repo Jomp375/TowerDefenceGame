@@ -24,21 +24,22 @@ public class enemy {
     protected int targeting;
     protected double distanceCounted;
     protected double internal_attack_timer;
-    protected levelBoard.Direction direction = levelBoard.Direction.DOWN;
+    protected levelBoard.Direction direction;
     protected double lackedMovement;
     protected String enemyType;
     protected boolean isMoving = false;
     protected boolean isAttacking;
 
 
-    public enemy(int x, int y, String enemyType, int health) {
+    public enemy(int x, int y, String enemyType, int health, levelBoard.Direction direction) {
         this.x = x;
         this.y = y;
         this.enemyType = enemyType;
         this.health = health;
         visible = true;
+        this.direction = direction;
     }
-    public void initFarmer () {
+    public void initEnemy () {
         if (enemyType == "farmer") {
             updateImage("src/recources/level_elements/Enemies/farmer", direction);
             getImageDimensions();
@@ -46,7 +47,7 @@ public class enemy {
             damage = 7;
             attack_speed = 760;
             speed = 1;
-            acc_speed = 1.8;
+            acc_speed = 1.5;
             range = 1;
             value = 15;
             targeting = 5;

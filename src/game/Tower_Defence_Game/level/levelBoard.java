@@ -19,8 +19,8 @@ public class levelBoard extends JPanel {
     private final int MAIN_BASE_CELL = 5;
     private final int N_ROWS = 25;
     private final int N_COLS = 13;
-    private final int FPS = 50;
-    private final int PERIOD = 1000 / FPS;
+    private final int FPS = 60;
+    private final double PERIOD = 1000 / FPS;
     private final int BOARD_WIDTH = N_ROWS * CELL_SIZE + 1;
     private final int BOARD_HEIGHT = N_COLS * CELL_SIZE + 10;
     private boolean inGame;
@@ -48,7 +48,7 @@ public class levelBoard extends JPanel {
         setPreferredSize(new Dimension(BOARD_WIDTH , BOARD_HEIGHT));
         setBackground(Color.white);
         addMouseListener(new MinesAdapter());
-        javax.swing.Timer timer = new Timer(PERIOD, new GameCycle());
+        javax.swing.Timer timer = new Timer((int) PERIOD, new GameCycle());
         timer.start();
         newGame();
     }
@@ -56,7 +56,7 @@ public class levelBoard extends JPanel {
         int cell;
         var random = new Random();
         inGame = true;
-        statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES);
+        statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "            Money: " +money + "$                  health: " + CURRENT_HEALTH + " / " + MAX_HEALTH  );
         setLevelLayOut(level);
         int i = 0;
     }
@@ -84,7 +84,8 @@ public class levelBoard extends JPanel {
                     g2d.drawImage(base.getImage(),i * CELL_SIZE,
                             j * CELL_SIZE, this);
                     isFirstBase = false;
-                } else if (Field[j][i] == ENEMY_CELL) {
+                }
+                if (enemies [j][i] != null) {
                     current_enemy = enemies [j][i];
                     g2d.drawImage(current_enemy.getImage(),
                             current_enemy.getX(),
@@ -246,28 +247,36 @@ public class levelBoard extends JPanel {
         if (doRepaint) {
             repaint();
         }
+        updateStatusbar();
     }
+
+    private void updateStatusbar() {
+        statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "            Money: " +money + "$                  health: " + CURRENT_HEALTH + " / " + MAX_HEALTH  );
+    }
+
     private void fightOrFlight() {
-         for (int j = 0; j < N_ROWS; j++) {
-                    for (int i = 0; i < N_COLS; i++) {
+         for (int j = 0; j < N_COLS; j++) {
+                    for (int i = 0; i < N_ROWS; i++) {
                          if (enemies [j][i] != null) {
                              enemy current_enemy = enemies[j][i];
                              current_enemy.setAttacking(false);
-                             statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "           " + "We have moved " + number + " times" );
+
                             for (Direction dir : Direction.values()) {
                                 if (j + dir.getDy()*current_enemy.getRange() >= 0 &&
-                                        j + dir.getDy()*current_enemy.getRange() <= N_COLS &&
+                                        j + dir.getDy()*current_enemy.getRange() < N_COLS &&
                                         i + dir.getDx()*current_enemy.getRange() >= 0 &&
-                                        i + dir.getDx()*current_enemy.getRange() <= N_ROWS){
+                                        i + dir.getDx()*current_enemy.getRange() < N_ROWS){
 
                                     if (Field[j + dir.getDy()* current_enemy.getRange()][i + dir.getDx()* current_enemy.getRange()] >= 3 && !current_enemy.isAttacking()) {
                                         current_enemy.setAttacking(true);
                                         current_enemy.setDirection(dir);
                                     current_enemy.updateAttackTimer(PERIOD);
-                                    if (current_enemy.getAttackTimer() == current_enemy.getAttack_speed()) {
-                                        if (Field[j + dir.getDy() * CELL_SIZE * current_enemy.getRange()][i + dir.getDx() * CELL_SIZE * current_enemy.getRange()] == 5) {
+                                    if (current_enemy.getAttackTimer() >= current_enemy.getAttack_speed()) {
+                                        if (Field[j + dir.getDy() * current_enemy.getRange()][i + dir.getDx() * current_enemy.getRange()] == 5) {
                                             CURRENT_HEALTH -= current_enemy.getDamage();
+
                                         }
+                                        current_enemy.resetAttackTimer();
                                     }
                                 }
                                 }
@@ -282,7 +291,8 @@ public class levelBoard extends JPanel {
                                 if (current_enemy.getDistanceCounted() >= CELL_SIZE){
                                     current_enemy.resetDistanceCounted();
                                     current_enemy.setMoving(false);
-                                    enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new enemy(current_enemy.getX(), current_enemy.getY(), current_enemy.getEnemyType(),current_enemy.getHealth());
+                                    enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new enemy(current_enemy.getX(), current_enemy.getY(), current_enemy.getEnemyType(),current_enemy.getHealth(), current_enemy.getDirection());
+                                    enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()].initEnemy();
                                     Field [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = ENEMY_CELL;
                                     Field [j][i] = 0;
                                     enemies [j][i] = null;
@@ -299,9 +309,19 @@ public class levelBoard extends JPanel {
         if (level == 1) {
             if (CURRENT_WAVE == 1){
                 if (MILLISECONDS_PASSED >= 10000 && MILLISECONDS_PASSED <= 10020){
-                    enemies[5][0] = new enemy(0,5* CELL_SIZE, "farmer", 30);
-                    enemies[5][0].initFarmer();
+                    enemies[5][0] = new enemy(0,5* CELL_SIZE, "farmer", 30, Direction.RIGHT);
+                    enemies[5][0].initEnemy();
                     Field [5][0] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 20000 && MILLISECONDS_PASSED <= 20020){
+                    enemies[3][0] = new enemy(0,3* CELL_SIZE, "farmer", 30, Direction.RIGHT);
+                    enemies[3][0].initEnemy();
+                    Field [3][0] = ENEMY_CELL;
+                }
+                if (MILLISECONDS_PASSED >= 23000 && MILLISECONDS_PASSED <= 23020){
+                    enemies[12][0] = new enemy(0,12* CELL_SIZE, "farmer", 30, Direction.RIGHT);
+                    enemies[12][0].initEnemy();
+                    Field [12][0] = ENEMY_CELL;
                 }
             }
         }
