@@ -28,7 +28,7 @@ public class levelBoard extends JPanel {
     private final JLabel statusbar;
     public int level;
     public int[][] Field = new int[N_ROWS][ N_COLS ];
-    public enemy [][] enemies = new enemy [N_ROWS][ N_COLS ];
+    public enemy [][] enemies = new enemy [N_COLS][ N_ROWS ];
     private final int startMoney = 200;
     private int money = startMoney;
     private int number = 1;
