@@ -24,22 +24,29 @@ public class Unit {
     protected int targeting;
     protected double distanceCounted;
     protected double internal_attack_timer;
-    protected levelBoard.Direction direction;
+    protected levelBoard.Direction direction = levelBoard.Direction.DOWN;
     protected double lackedMovement;
     protected String enemyType;
     protected boolean isMoving = false;
     protected boolean isAttacking;
+    protected String unitType;
+    protected int cost;
+    protected int upgradesFirstPath;
+    protected int upgradesSecondPath;
+    protected int upgradesThrirdPath;
+    protected String imageName;
 
 
-    public Unit(int x, int y,  int health, levelBoard.Direction direction) {
+    public Unit(int x, int y, String unitType,  int health, levelBoard.Direction direction) {
         this.x = x;
         this.y = y;
         this.health = health;
         visible = true;
         this.direction = direction;
+        this.unitType = unitType;
     }
 
-    protected void updateImage(String imageName, levelBoard.Direction direction) {
+    protected void updateImage( levelBoard.Direction direction) {
         ImageIcon imageIcon = new ImageIcon(imageName + "_"+toString(direction) + ".png");
 
         image = imageIcon.getImage();
@@ -87,7 +94,9 @@ public class Unit {
             height = image.getHeight(null);
         }
     }
-
+    public Image getImage(){
+        return image;
+    }
     public void setDirection(levelBoard.Direction direction) {
         this.direction = direction;
     }
@@ -201,6 +210,22 @@ public class Unit {
 
     public void resetDistanceCounted() {
         distanceCounted = 0;
+    }
+
+    public void initUnit() {
+        if (unitType == "spearman"){
+            imageName = "src/recources/level_elements/Friendly_units/Spearman/spearman";
+            updateImage( direction);
+            max_health = 50;
+            health = max_health;
+            damage = 8;
+            speed = 2;
+            acc_speed = 2;
+            range = 1;
+            attack_speed = 1000;
+            attack_size = 1;
+            cost = 50;
+        }
     }
 }
 
