@@ -1,11 +1,11 @@
 package game.Tower_Defence_Game.level;
 
+import javax.swing.*;
 import java.awt.*;
-import javax.swing.ImageIcon;
 
 import static java.awt.Image.SCALE_DEFAULT;
 
-public class enemy {
+public class Unit {
     protected int x;
     protected int y;
     protected int width;
@@ -31,28 +31,12 @@ public class enemy {
     protected boolean isAttacking;
 
 
-    public enemy(int x, int y, String enemyType, int health, levelBoard.Direction direction) {
+    public Unit(int x, int y,  int health, levelBoard.Direction direction) {
         this.x = x;
         this.y = y;
-        this.enemyType = enemyType;
         this.health = health;
         visible = true;
         this.direction = direction;
-    }
-    public void initEnemy () {
-        if (enemyType == "farmer") {
-            updateImage("src/recources/level_elements/Enemies/farmer", direction);
-            getImageDimensions();
-            max_health = 30;
-            damage = 7;
-            attack_speed = 760;
-            speed = 1;
-            acc_speed = 1.8;
-            range = 1;
-            value = 15;
-            targeting = 5;
-            enemyType = "farmer";
-        }
     }
 
     protected void updateImage(String imageName, levelBoard.Direction direction) {
@@ -63,7 +47,7 @@ public class enemy {
         getImageDimensions();
     }
 
-    private String toString(levelBoard.Direction direction) {
+    public String toString(levelBoard.Direction direction) {
         if (direction == levelBoard.Direction.DOWN){
             return "DOWN";
         } else if (direction == levelBoard.Direction.UP){
@@ -108,10 +92,6 @@ public class enemy {
         this.direction = direction;
     }
 
-    public Image getImage() {
-       updateImage("src/recources/level_elements/Enemies/"+ enemyType + "/" + enemyType, direction);
-       return image;
-    }
 
     public int getX() {
         return x;
@@ -123,6 +103,9 @@ public class enemy {
 
     public boolean isVisible() {
         return visible;
+    }
+    public void damage (int damage){
+        health -= damage;
     }
 
     public void setVisible(Boolean visible) {
@@ -219,8 +202,5 @@ public class enemy {
     public void resetDistanceCounted() {
         distanceCounted = 0;
     }
-
-    public void damage(int damage) {
-        health -= damage;
-    }
 }
+

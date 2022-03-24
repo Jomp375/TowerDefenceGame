@@ -28,6 +28,7 @@ public class levelBoard extends JPanel {
     private boolean doRepaint = true;
     private JLabel statusbar;
     public int level;
+    private boolean started;
     public int[][] Field = new int[N_COLS][N_ROWS];
     public enemy [][] enemies = new enemy [N_COLS][ N_ROWS ];
     public healthbar[][] healthbars = new healthbar[N_COLS][N_ROWS];
@@ -89,8 +90,8 @@ public class levelBoard extends JPanel {
                         g2d.drawImage(healthbars[j][i].getImage(), healthbars[j][i].getX(), healthbars[j][i].getY(), this);
                     }
                     if (Field[j][i] == EMPTY_CELL) {
-                   g2d.drawImage(empty.getImage(), i * CELL_SIZE,
-                            j * CELL_SIZE, this);
+//                   g2d.drawImage(empty.getImage(), i * CELL_SIZE,
+//                            j * CELL_SIZE, this);
 
                     } else if (Field[j][i] == ROCK_CELL) {
 
@@ -137,6 +138,9 @@ public class levelBoard extends JPanel {
                     healthbars[cRow][cCol] = null;
                     Field[cRow][cCol] = 0;
                 }
+            }
+            if (inGame){
+                started = true;
             }
             if (!inGame) {
                 newGame();
@@ -221,7 +225,7 @@ public class levelBoard extends JPanel {
 
                     // Is there a path in the direction (= is it a free field in the labyrinth)?
                     // And has that field not yet been discovered?
-                    if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) && lab[newY][newX] != MOVING_CELL && !discovered[newY][newX]) {
+                    if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) &&  !discovered[newY][newX]) {
                         // "Discover" and enqueue that field
                         discovered[newY][newX] = true;
                         queue.add(new Node(newX, newY, newDir));
@@ -230,7 +234,7 @@ public class levelBoard extends JPanel {
             }
         }
 
-        throw new IllegalStateException("No path found");
+       return Direction.NOMOVE;
     }
 
     private static class Node {
@@ -246,10 +250,11 @@ public class levelBoard extends JPanel {
     }
 
     public enum Direction {
-        UP(0, -1),
         RIGHT(1, 0),
+        UP(0, -1),
         DOWN(0, 1),
-        LEFT(-1, 0);
+        LEFT(-1, 0),
+        NOMOVE(0,0);
 
         private final int dx;
         private final int dy;
@@ -346,25 +351,28 @@ public class levelBoard extends JPanel {
                             if (!current_enemy.isAttacking()){
                                 current_enemy.resetAttackTimer();
                                 if (!current_enemy.isMoving()) {
-                                    current_enemy.setDirection(findShortestPathToTarget(Field, i, j, current_enemy.getTargeting()));
-                                    current_enemy.setMoving(true);
-                                    Field [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = MOVING_CELL;
+                                    if (findShortestPathToTarget(Field, i, j, current_enemy.getTargeting()) != Direction.NOMOVE) {
+                                        current_enemy.setDirection(findShortestPathToTarget(Field, i, j, current_enemy.getTargeting()));
+                                        current_enemy.setMoving(true);
+                                    }
                                 }
-
-                                current_enemy.move();
-                                healthbars[j][i].move(current_enemy);
-                                if (current_enemy.getDistanceCounted() >= CELL_SIZE){
-                                    current_enemy.resetDistanceCounted();
-                                    current_enemy.setMoving(false);
-                                    healthbars [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new healthbar(healthbars[j][i].getX(),healthbars[j][i].getY(),healthbars[j][i].getHealth(), healthbars[j][i].getMaxHealth());
-                                    enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new enemy(current_enemy.getX(), current_enemy.getY(), current_enemy.getEnemyType(),current_enemy.getHealth(), current_enemy.getDirection());
-                                    enemies [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()].initEnemy();
-                                    Field [j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = ENEMY_CELL;
-                                    Field [j][i] = 0;
-                                    enemies [j][i] = null;
-                                    healthbars [j][i] = null;
+                                    if (current_enemy.isMoving && Field[j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()]!= MOVING_CELL) {
+                                        Field[j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = MOVING_CELL;
+                                    }
+                                    current_enemy.move();
+                                    healthbars[j][i].move(current_enemy);
+                                    if (current_enemy.getDistanceCounted() >= CELL_SIZE) {
+                                        current_enemy.resetDistanceCounted();
+                                        current_enemy.setMoving(false);
+                                        healthbars[j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new healthbar(healthbars[j][i].getX(), healthbars[j][i].getY(), healthbars[j][i].getHealth(), healthbars[j][i].getMaxHealth());
+                                        enemies[j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = new enemy(current_enemy.getX(), current_enemy.getY(), current_enemy.getEnemyType(), current_enemy.getHealth(), current_enemy.getDirection());
+                                        enemies[j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()].initEnemy();
+                                        Field[j + current_enemy.getDirection().getDy()][i + current_enemy.getDirection().getDx()] = ENEMY_CELL;
+                                        Field[j][i] = 0;
+                                        enemies[j][i] = null;
+                                        healthbars[j][i] = null;
+                                    }
                                 }
-                            }
                         }
                          repaint();
                     }
@@ -374,90 +382,65 @@ public class levelBoard extends JPanel {
 
 
     private void updateWave(int level) {
-        if (level == 1) {
-            if (CURRENT_WAVE == 1) {
-                if (MILLISECONDS_PASSED >= 10000 && MILLISECONDS_PASSED <= 10020) {
-                    enemies[5][0] = new enemy(0, 5 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[5][0].initEnemy();
-                    healthbars[5][0] = new healthbar(0, 5 * CELL_SIZE - 20, enemies[5][0].getHealth(), enemies[5][0].getMax_health());
-                    Field[5][0] = ENEMY_CELL;
+        if (started) {
+            if (level == 1) {
+                if (CURRENT_WAVE == 1) {
+                    if (MILLISECONDS_PASSED >= 2000 && MILLISECONDS_PASSED <= 2020) {
+                        MakeEnemy(0, 5, "farmer", 30);
+                    }
+                    if (MILLISECONDS_PASSED >= 10000 && MILLISECONDS_PASSED <= 10020) {
+                        MakeEnemy(0, 3, "farmer", 30);
+                    }
+                    if (MILLISECONDS_PASSED >= 13000 && MILLISECONDS_PASSED <= 13020) {
+                        MakeEnemy(0, 12, "farmer", 30);
+                    }
+                    if (MILLISECONDS_PASSED >= 30000 && MILLISECONDS_PASSED <= 30020) {
+                        CURRENT_WAVE = 2;
+                        MILLISECONDS_PASSED = 0;
+                    }
                 }
-                if (MILLISECONDS_PASSED >= 20000 && MILLISECONDS_PASSED <= 20020) {
-                    enemies[3][0] = new enemy(0, 3 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[3][0].initEnemy();
-                    healthbars[3][0] = new healthbar(0, 3 * CELL_SIZE - 20, enemies[3][0].getHealth(), enemies[3][0].getMax_health());
-                    Field[3][0] = ENEMY_CELL;
-                }
-                if (MILLISECONDS_PASSED >= 23000 && MILLISECONDS_PASSED <= 23020) {
-                    enemies[12][0] = new enemy(0, 12 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[12][0].initEnemy();
-                    healthbars[12][0] = new healthbar(0, 12 * CELL_SIZE - 20, enemies[12][0].getHealth(), enemies[12][0].getMax_health());
-                    Field[12][0] = ENEMY_CELL;
-                }
-                if (MILLISECONDS_PASSED >= 40000 && MILLISECONDS_PASSED <= 40020) {
-                    CURRENT_WAVE = 2;
-                    MILLISECONDS_PASSED = 0;
-                }
-            }
-            if (CURRENT_WAVE == 2) {
-                if (MILLISECONDS_PASSED >= 100 && MILLISECONDS_PASSED <= 120) {
-                    enemies[6][0] = new enemy(0, 6 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[6][0].initEnemy();
-                    healthbars[6][0] = new healthbar(0, 6 * CELL_SIZE - 20, enemies[6][0].getHealth(), enemies[6][0].getMax_health());
-                    Field[6][0] = ENEMY_CELL;
-                }
-                if (MILLISECONDS_PASSED >= 2500 && MILLISECONDS_PASSED <= 2520) {
-                    enemies[11][0] = new enemy(0, 11 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[11][0].initEnemy();
-                    healthbars[11][0] = new healthbar(0, 11 * CELL_SIZE - 20, enemies[11][0].getHealth(), enemies[11][0].getMax_health());
-                    Field[11][0] = ENEMY_CELL;
+                if (CURRENT_WAVE == 2) {
+                    if (MILLISECONDS_PASSED >= 100 && MILLISECONDS_PASSED <= 120) {
+                        MakeEnemy(0, 4, "farmer", 30);
+                    }
+                    if (MILLISECONDS_PASSED >= 2500 && MILLISECONDS_PASSED <= 2520) {
+                        MakeEnemy(0, 4, "farmer", 30);
 
-                }
-                if (MILLISECONDS_PASSED >= 3200 && MILLISECONDS_PASSED <= 3220) {
-                    enemies[12][0] = new enemy(0, 12 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[12][0].initEnemy();
-                    healthbars[12][0] = new healthbar(0, 12 * CELL_SIZE - 20, enemies[12][0].getHealth(), enemies[12][0].getMax_health());
-                    Field[12][0] = ENEMY_CELL;
-                }
-                if (MILLISECONDS_PASSED >= 4700 && MILLISECONDS_PASSED <= 4720) {
-                    enemies[3][0] = new enemy(0, 3 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[3][0].initEnemy();
-                    healthbars[3][0] = new healthbar(0, 3 * CELL_SIZE - 20, enemies[3][0].getHealth(), enemies[3][0].getMax_health());
-                    Field[3][0] = ENEMY_CELL;
-                }
-                if (MILLISECONDS_PASSED >= 9200 && MILLISECONDS_PASSED <= 9220) {
-                    enemies[6][0] = new enemy(0, 6 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[6][0].initEnemy();
-                    healthbars[6][0] = new healthbar(0, 6 * CELL_SIZE - 20, enemies[6][0].getHealth(), enemies[6][0].getMax_health());
-                    Field[6][0] = ENEMY_CELL;
-                }
-                if (MILLISECONDS_PASSED >= 25000 && MILLISECONDS_PASSED <= 25020) {
-                    enemies[3][0] = new enemy(0, 3 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[3][0].initEnemy();
-                    healthbars[3][0] = new healthbar(0, 3 * CELL_SIZE - 20, enemies[3][0].getHealth(), enemies[3][0].getMax_health());
-                    Field[3][0] = ENEMY_CELL;
-                    enemies[5][0] = new enemy(0, 5 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[5][0].initEnemy();
-                    healthbars[5][0] = new healthbar(0, 5 * CELL_SIZE - 20, enemies[5][0].getHealth(), enemies[5][0].getMax_health());
-                    Field[5][0] = ENEMY_CELL;
-                    enemies[7][1] = new enemy(CELL_SIZE, 7 * CELL_SIZE, "farmer", 30, Direction.LEFT);
-                    enemies[7][1].initEnemy();
-                    healthbars[7][1] = new healthbar(CELL_SIZE, 7 * CELL_SIZE - 20, enemies[7][1].getHealth(), enemies[7][1].getMax_health());
-                    Field[7][1] = ENEMY_CELL;
-                }
-                if (MILLISECONDS_PASSED >= 60000 && MILLISECONDS_PASSED <= 60020) {
-                    CURRENT_WAVE = 3;
-                    MILLISECONDS_PASSED = 0;
+                    }
+                    if (MILLISECONDS_PASSED >= 6800 && MILLISECONDS_PASSED <= 6820) {
+                        MakeEnemy(0, 9, "farmer", 30);
+                        MakeEnemy(0, 3, "farmer", 30);
+                    }
+                    if (MILLISECONDS_PASSED >= 21000 && MILLISECONDS_PASSED <= 21020) {
+                        MakeEnemy(0, 5, "farmer", 30);
+                        MakeEnemy(1, 7, "farmer", 30);
+                    }
+                    if (MILLISECONDS_PASSED >= 25000 && MILLISECONDS_PASSED <= 25020) {
+                        MakeEnemy(0, 3, "farmer", 30);
+                        MakeEnemy(0, 6, "farmer", 30);
+                    }
+                    if (MILLISECONDS_PASSED >= 40000 && MILLISECONDS_PASSED <= 40020) {
+                        CURRENT_WAVE = 3;
+                        MILLISECONDS_PASSED = 0;
+                    }
                 }
             }
         }
+    }
+    public void MakeEnemy (int x, int y, String enemytype, int health){
+        enemies[y][x] = new enemy(x*CELL_SIZE, y * CELL_SIZE, enemytype, health, Direction.LEFT);
+        enemies[y][x].initEnemy();
+        healthbars[y][x] = new healthbar(x*CELL_SIZE, y * CELL_SIZE - 20, enemies[y][x].getHealth(), enemies[y][x].getMax_health());
+        Field[y][x] = ENEMY_CELL;
     }
 
     private class GameCycle implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            MILLISECONDS_PASSED = MILLISECONDS_PASSED +PERIOD;
-            doGameCycle();
+            if (started) {
+                MILLISECONDS_PASSED = MILLISECONDS_PASSED + PERIOD;
+                doGameCycle();
+            }
         }
     }
     }
