@@ -9,6 +9,7 @@ import java.util.*;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JButton;
 import javax.swing.Timer;
 
 public class levelBoard extends JPanel {
@@ -17,6 +18,7 @@ public class levelBoard extends JPanel {
     private final int EMPTY_CELL = 0;
     private final int ROCK_CELL = 2;
     private final int ENEMY_CELL = 1;
+    private final int FRIENDLY_CELL = 3;
     private final int MAIN_BASE_CELL = 5;
     private final int N_ROWS = 25;
     private final int N_COLS = 13;
@@ -39,8 +41,10 @@ public class levelBoard extends JPanel {
     private double MILLISECONDS_PASSED = 0;
     private final int AMOUNT_OF_WAVES = 7;
     private ArrayList<HitEffect> hitEffects = new ArrayList<HitEffect>();
+    private ImageIcon spearmanIcon = new ImageIcon("src/recources/level_elements/spearman_price_icon.png");
+    private JButton spearmanButton = new JButton(spearmanIcon);
 
-    public int MAX_HEALTH = 500;
+    public int MAX_HEALTH = 250;
     public int CURRENT_HEALTH = MAX_HEALTH;
     public levelBoard(JLabel statusbar, int level) {
         this.statusbar = statusbar;
@@ -57,9 +61,10 @@ public class levelBoard extends JPanel {
         newGame();
     }
     private void newGame() {
-        MAX_HEALTH = 500;
+        MAX_HEALTH = 250;
         CURRENT_HEALTH = MAX_HEALTH;
         MILLISECONDS_PASSED = 0;
+        CURRENT_WAVE = 1;
         for (int j = 0; j < N_COLS; j++) {
             for (int i = 0; i < N_ROWS; i++) {
                 enemies[j][i] = null;
@@ -72,6 +77,7 @@ public class levelBoard extends JPanel {
         inGame = true;
         statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "            Money: " +money + "$                  health: " + CURRENT_HEALTH + " / " + MAX_HEALTH  );
         setLevelLayOut(level);
+        spearmanButton.setVisible(true);
         int i = 0;
     }
 
@@ -168,7 +174,7 @@ public class levelBoard extends JPanel {
                                     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5},
                                     {2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,5,5,5},
                                     {2,2,2,0,0,0,0,0,0,0,2,2,0,0,0,2,2,0,0,0,0,0,0,0,0},
-                                    {0,2,2,2,2,0,0,0,0,2,2,0,0,0,0,2,2,2,0,0,0,0,0,0,0},
+                                    {2,2,2,2,2,0,0,0,0,2,2,0,0,0,0,2,2,2,0,0,0,0,0,0,0},
                                     {0,0,0,2,2,2,2,2,2,2,0,0,0,0,2,2,2,2,0,0,0,0,0,0,0},
                                     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0},
                                     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0}};
@@ -185,7 +191,7 @@ public class levelBoard extends JPanel {
      * @return the direction of the shortest path
      */
     private Direction findShortestPathToTarget
-    (int[][] lab, int cx, int cy, int target) {
+    (int[][] lab, int cx, int cy, int target, boolean ignoreEnemy) {
         // Create a queue for all nodes we will process in breadth-first order.
         // Each node is a data structure containing the cat's position and the
         // initial direction it took to reach this point.
@@ -207,7 +213,7 @@ public class levelBoard extends JPanel {
 
             // Go breath-first into each direction
             for (Direction dir : Direction.values()) {
-                if ((node.x != 0 || dir.getDx() >= 0)&& (node.x != lab[0].length -1 || dir.getDx() <= 0) && (node.y != 0 || dir.getDy() >= 0)&& (node.y != lab.length-1 || dir.getDy() <= 0)) {
+                if ((node.x != 0 || dir.getDx() >= 0) && (node.x != lab[0].length - 1 || dir.getDx() <= 0) && (node.y != 0 || dir.getDy() >= 0) && (node.y != lab.length - 1 || dir.getDy() <= 0)) {
                     int newX = node.x + dir.getDx();
                     int newY = node.y + dir.getDy();
                     Direction newDir = node.initialDir == null ? dir : node.initialDir;
@@ -226,16 +232,24 @@ public class levelBoard extends JPanel {
 
                     // Is there a path in the direction (= is it a free field in the labyrinth)?
                     // And has that field not yet been discovered?
-                    if ((lab[newY][newX] != ROCK_CELL) && (lab[newY][newX] != ENEMY_CELL) &&  !discovered[newY][newX]) {
-                        // "Discover" and enqueue that field
-                        discovered[newY][newX] = true;
-                        queue.add(new Node(newX, newY, newDir));
+                    if (ignoreEnemy) {
+                        if ((lab[newY][newX] != ROCK_CELL) && !discovered[newY][newX]) {
+                            // "Discover" and enqueue that field
+                            discovered[newY][newX] = true;
+                            queue.add(new Node(newX, newY, newDir));
+                        }
+                    } else {
+                        if ((lab[newY][newX] != ROCK_CELL) && !discovered[newY][newX]&&(lab[newY][newX] != ENEMY_CELL && (lab[newY][newX] != MOVING_CELL))) {
+                            // "Discover" and enqueue that field
+                            discovered[newY][newX] = true;
+                            queue.add(new Node(newX, newY, newDir));
+                        }
                     }
                 }
             }
         }
 
-       return Direction.NOMOVE;
+       throw new IllegalArgumentException("no path found");
     }
 
     private static class Node {
@@ -254,8 +268,7 @@ public class levelBoard extends JPanel {
         RIGHT(1, 0),
         UP(0, -1),
         DOWN(0, 1),
-        LEFT(-1, 0),
-        NOMOVE(0,0);
+        LEFT(-1, 0);
 
         private final int dx;
         private final int dy;
@@ -338,22 +351,35 @@ public class levelBoard extends JPanel {
                                     if (Field[j + dir.getDy()* current_enemy.getRange()][i + dir.getDx()* current_enemy.getRange()] >= 3 && !current_enemy.isAttacking()) {
                                         current_enemy.setAttacking(true);
                                         current_enemy.setDirection(dir);
-                                    current_enemy.updateAttackTimer(PERIOD);
-                                    if (current_enemy.getAttackTimer() >= current_enemy.getAttack_speed()) {
-                                        if (Field[j + dir.getDy() * current_enemy.getRange()][i + dir.getDx() * current_enemy.getRange()] == 5) {
-                                            CURRENT_HEALTH -= current_enemy.getDamage();
-                                            hitEffects.add(new HitEffect((i + dir.getDx()* current_enemy.getRange())*CELL_SIZE,(j + dir.getDy()* current_enemy.getRange())*CELL_SIZE,current_enemy.getDirection(),current_enemy.getDamage()));
-                                        }
-                                        current_enemy.resetAttackTimer();
                                     }
                                 }
-                                }
+                            } if (current_enemy.isAttacking){
+                                current_enemy.updateAttackTimer(PERIOD);
+                                    if (current_enemy.getAttackTimer() >= current_enemy.getAttack_speed()) {
+                                        if (Field[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()] == 5) {
+                                            CURRENT_HEALTH -= current_enemy.getDamage();
+                                            hitEffects.add(new HitEffect((i + current_enemy.getDirection().getDx() * current_enemy.getRange()) * CELL_SIZE, (j + current_enemy.getDirection().getDy() * current_enemy.getRange()) * CELL_SIZE, current_enemy.getDirection(), current_enemy.getDamage()));
+                                            current_enemy.resetAttackTimer();
+                                        } else if (Field[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()] == FRIENDLY_CELL) {
+                                            units[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()].damage(current_enemy.getDamage());
+                                            hitEffects.add(new HitEffect((i + current_enemy.getDirection().getDx() * current_enemy.getRange()) * CELL_SIZE, (j + current_enemy.getDirection().getDy() * current_enemy.getRange()) * CELL_SIZE, current_enemy.getDirection(), current_enemy.getDamage()));
+                                            if (units[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()].getHealth() <= 0) {
+                                                units[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()] = null;
+                                                healthbars[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()] = null;
+                                                Field[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()] = 0;
+                                                current_enemy.setAttacking(false);
+                                            }
+                                        }
+                                    }
                             }
                             if (!current_enemy.isAttacking()){
                                 current_enemy.resetAttackTimer();
                                 if (!current_enemy.isMoving()) {
-                                    if (findShortestPathToTarget(Field, i, j, current_enemy.getTargeting()) != Direction.NOMOVE) {
-                                        current_enemy.setDirection(findShortestPathToTarget(Field, i, j, current_enemy.getTargeting()));
+                                    if (Field[j + findShortestPathToTarget(Field, i, j, current_enemy.getTargeting(), true).getDy()][i + findShortestPathToTarget(Field, i, j, current_enemy.getTargeting(), true).getDx()] == ENEMY_CELL ||Field[j + findShortestPathToTarget(Field, i, j, current_enemy.getTargeting(), true).getDy()][i + findShortestPathToTarget(Field, i, j, current_enemy.getTargeting(), true).getDx()] == MOVING_CELL) {
+                                        current_enemy.setDirection(findShortestPathToTarget(Field, i, j, current_enemy.getTargeting(), false));
+                                        current_enemy.setMoving(true);
+                                    } else {
+                                        current_enemy.setDirection(findShortestPathToTarget(Field, i, j, current_enemy.getTargeting(), true));
                                         current_enemy.setMoving(true);
                                     }
                                 }
@@ -378,26 +404,29 @@ public class levelBoard extends JPanel {
                          if (units[j][i] != null){
                              Unit current_unit = units [j][i];
                              for (Direction dir : Direction.values()) {
-                                 if     (j + dir.getDy()*current_unit.getRange() >= 0 &&
-                                         j + dir.getDy()*current_unit.getRange() < N_COLS &&
-                                         i + dir.getDx()*current_unit.getRange() >= 0 &&
-                                         i + dir.getDx()*current_unit.getRange() < N_ROWS){
+                                 if (j + dir.getDy() * current_unit.getRange() >= 0 &&
+                                         j + dir.getDy() * current_unit.getRange() < N_COLS &&
+                                         i + dir.getDx() * current_unit.getRange() >= 0 &&
+                                         i + dir.getDx() * current_unit.getRange() < N_ROWS) {
 
-                                     if (Field[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] == ENEMY_CELL && !current_unit.isAttacking()) {
+                                     if (Field[j + dir.getDy() * current_unit.getRange()][i + dir.getDx() * current_unit.getRange()] == ENEMY_CELL && !current_unit.isAttacking()) {
                                          current_unit.setAttacking(true);
                                          current_unit.setDirection(dir);
-                                         current_unit.updateAttackTimer(PERIOD);
-                                         if (current_unit.getAttackTimer() >= current_unit.getAttack_speed()) {
-                                             enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].damage(current_unit.getDamage());
-                                             healthbars[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].updateHealthbar(current_unit.getDamage());
-                                             hitEffects.add(new HitEffect(i*CELL_SIZE, j*CELL_SIZE, current_unit.getDamage()));
-                                             if (enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].getHealth() <= 0){
-                                                 money += enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].getValue();
-                                                 enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] = null;
-                                                 healthbars[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] = null;
-                                                 Field[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] = 0;
-                                             }
-                                         }
+                                     }
+                                 }
+                             }
+                             if (current_unit.isAttacking) {
+                                 current_unit.updateAttackTimer(PERIOD);
+                                 if (current_unit.getAttackTimer() >= current_unit.getAttack_speed()) {
+                                     enemies[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].damage(current_unit.getDamage());
+                                     healthbars[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].updateHealthbar(current_unit.getDamage());
+                                     hitEffects.add(new HitEffect(i * CELL_SIZE, j * CELL_SIZE, current_unit.getDirection(), current_unit.getDamage()));
+                                     if (enemies[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].getHealth() <= 0) {
+                                         money += enemies[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].getValue();
+                                         enemies[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()] = null;
+                                         healthbars[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()] = null;
+                                         Field[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()] = 0;
+                                         current_unit.setAttacking(false);
                                      }
                                  }
                              }
@@ -429,14 +458,14 @@ public class levelBoard extends JPanel {
                 }
                 if (CURRENT_WAVE == 2) {
                     if (MILLISECONDS_PASSED >= 100 && MILLISECONDS_PASSED <= 120) {
-                        MakeEnemy(0, 4, "farmer", 30);
+                        MakeEnemy(0, 5, "farmer", 30);
                     }
                     if (MILLISECONDS_PASSED >= 2500 && MILLISECONDS_PASSED <= 2520) {
                         MakeEnemy(0, 4, "farmer", 30);
 
                     }
                     if (MILLISECONDS_PASSED >= 6800 && MILLISECONDS_PASSED <= 6820) {
-                        MakeEnemy(0, 9, "farmer", 30);
+                        MakeEnemy(0, 10, "farmer", 30);
                         MakeEnemy(0, 3, "farmer", 30);
                     }
                     if (MILLISECONDS_PASSED >= 21000 && MILLISECONDS_PASSED <= 21020) {
@@ -444,8 +473,8 @@ public class levelBoard extends JPanel {
                         MakeEnemy(1, 7, "farmer", 30);
                     }
                     if (MILLISECONDS_PASSED >= 25000 && MILLISECONDS_PASSED <= 25020) {
-                        MakeEnemy(0, 3, "farmer", 30);
-                        MakeEnemy(0, 6, "farmer", 30);
+                        MakeEnemy(0, 4, "farmer", 30);
+                        MakeEnemy(1, 6, "farmer", 30);
                     }
                     if (MILLISECONDS_PASSED >= 40000 && MILLISECONDS_PASSED <= 40020) {
                         CURRENT_WAVE = 3;
