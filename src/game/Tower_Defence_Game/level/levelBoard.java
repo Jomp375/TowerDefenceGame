@@ -21,7 +21,7 @@ public class levelBoard extends JPanel {
     private final int N_ROWS = 25;
     private final int N_COLS = 13;
     private final int FPS = 60;
-    private final double PERIOD = 1000 / FPS;
+    private final double PERIOD = (double)1000 / FPS;
     private final int BOARD_WIDTH = N_ROWS * CELL_SIZE + 1;
     private final int BOARD_HEIGHT = N_COLS * CELL_SIZE + 10;
     private boolean inGame;
@@ -32,9 +32,9 @@ public class levelBoard extends JPanel {
     public int[][] Field = new int[N_COLS][N_ROWS];
     public enemy [][] enemies = new enemy [N_COLS][ N_ROWS ];
     public healthbar[][] healthbars = new healthbar[N_COLS][N_ROWS];
+    public Unit [][] units = new Unit[N_COLS][N_ROWS];
     private final int startMoney = 200;
     private int money = startMoney;
-    private int number = 1;
     private int CURRENT_WAVE = 1;
     private double MILLISECONDS_PASSED = 0;
     private final int AMOUNT_OF_WAVES = 7;
@@ -64,6 +64,7 @@ public class levelBoard extends JPanel {
             for (int i = 0; i < N_ROWS; i++) {
                 enemies[j][i] = null;
                 healthbars[j][i]= null;
+                units[j][i] = null;
             }
         }
         money = startMoney;
@@ -374,6 +375,33 @@ public class levelBoard extends JPanel {
                                     }
                                 }
                         }
+                         if (units[j][i] != null){
+                             Unit current_unit = units [j][i];
+                             for (Direction dir : Direction.values()) {
+                                 if     (j + dir.getDy()*current_unit.getRange() >= 0 &&
+                                         j + dir.getDy()*current_unit.getRange() < N_COLS &&
+                                         i + dir.getDx()*current_unit.getRange() >= 0 &&
+                                         i + dir.getDx()*current_unit.getRange() < N_ROWS){
+
+                                     if (Field[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] == ENEMY_CELL && !current_unit.isAttacking()) {
+                                         current_unit.setAttacking(true);
+                                         current_unit.setDirection(dir);
+                                         current_unit.updateAttackTimer(PERIOD);
+                                         if (current_unit.getAttackTimer() >= current_unit.getAttack_speed()) {
+                                             enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].damage(current_unit.getDamage());
+                                             healthbars[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].updateHealthbar(current_unit.getDamage());
+                                             hitEffects.add(new HitEffect(i*CELL_SIZE, j*CELL_SIZE, current_unit.getDamage()));
+                                             if (enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].getHealth() <= 0){
+                                                 money += enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()].getValue();
+                                                 enemies[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] = null;
+                                                 healthbars[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] = null;
+                                                 Field[j + dir.getDy()* current_unit.getRange()][i + dir.getDx()* current_unit.getRange()] = 0;
+                                             }
+                                         }
+                                     }
+                                 }
+                             }
+                         }
                          repaint();
                     }
          }

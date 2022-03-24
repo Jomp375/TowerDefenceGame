@@ -42,9 +42,19 @@ public class spearman extends Unit {
         this.upgradesThrirdPath = upgrdadesThrirdPath;
         visible = true;
         initUnit();
+
     }
     public void initUnit () {
-            updateImage("src/recources/level_elements/Enemies/farmer", direction);
+        updateImage("src/recources/level_elements/Enemies/farmer", direction);
+        max_health = 50;
+        health = max_health;
+        damage = 8;
+        speed = 2;
+        acc_speed = 2;
+        range = 1;
+        attack_speed = 100;
+        attack_size = 1;
+        cost = 50;
         }
 
 }
