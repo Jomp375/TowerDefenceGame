@@ -48,6 +48,7 @@ public class levelBoard extends JPanel {
     public int MAX_HEALTH = 250;
     public int CURRENT_HEALTH = MAX_HEALTH;
     private Unit current_unit;
+    private String message;
 
     public levelBoard(JLabel statusbar, int level) {
         this.statusbar = statusbar;
@@ -86,12 +87,18 @@ public class levelBoard extends JPanel {
     private JButton createSpearManButton() {
 
         JButton spearmanButton = MenuButton.createMenuButton("$50", "src/recources/level_elements/Friendly_units/Spearman/spearman_DOWN.png", true);
-        spearmanButton.setLocation(BOARD_WIDTH / 2 - spearmanButton.getWidth() / 2, 700);
+        spearmanButton.setLocation(BOARD_WIDTH / 2 - spearmanButton.getWidth() / 2, BOARD_HEIGHT - spearmanButton.getHeight()-2);
         spearmanButton.addActionListener(actionEvent -> {
             if (isPlacingSpearman){
                 isPlacingSpearman = false;
             } else{
-                isPlacingSpearman = true;
+                if (money >= 50) {
+                    isPlacingSpearman = true;
+
+                    message = "select a square to place a spearman in";
+                } else {
+                    message = "not enough money";
+                }
             }
 
         });
@@ -356,7 +363,7 @@ public class levelBoard extends JPanel {
     }
 
     private void updateStatusbar() {
-        statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "            Money: " +money + "$                  health: " + CURRENT_HEALTH + " / " + MAX_HEALTH  );
+        statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "            Money: " +money + "$                  health: " + CURRENT_HEALTH + " / " + MAX_HEALTH + "             "  + message );
     }
     private void checkForDeath()    {
         for (int j = 0; j < N_COLS; j++) {
@@ -406,6 +413,7 @@ public class levelBoard extends JPanel {
                                  if (current_enemy.getAttackTimer() >= current_enemy.getAttack_speed()) {
                                      if (Field[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()] == 5) {
                                          CURRENT_HEALTH -= current_enemy.getDamage();
+                                         message = "your main base is getting damaged";
                                          hitEffects.add(new HitEffect((i + current_enemy.getDirection().getDx() * current_enemy.getRange()) * CELL_SIZE, (j + current_enemy.getDirection().getDy() * current_enemy.getRange()) * CELL_SIZE, current_enemy.getDirection(), current_enemy.getDamage()));
                                          current_enemy.resetAttackTimer();
                                      } else if (Field[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()] == FRIENDLY_CELL) {
