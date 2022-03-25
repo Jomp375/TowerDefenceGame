@@ -57,6 +57,16 @@ public class healthbar {
             y +=  Enemy.getSpeed() * Enemy.getDirection().getDy();
         }
     }
+    public void move (Unit unit) {
+        if (unit.getLackedMovement() >= 1) {
+            x +=  (unit.getSpeed() + 1)* unit.getDirection().getDx();
+            y +=  (unit.getSpeed() + 1)* unit.getDirection().getDy();
+
+        } else {
+            x +=  unit.getSpeed() * unit.getDirection().getDx();
+            y +=  unit.getSpeed() * unit.getDirection().getDy();
+        }
+    }
         protected void loadImage() {
             ImageIcon imageIcon;
             double percentage = (double) health/max_health;

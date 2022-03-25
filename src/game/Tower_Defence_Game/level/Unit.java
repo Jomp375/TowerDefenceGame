@@ -2,6 +2,8 @@ package game.Tower_Defence_Game.level;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 import static java.awt.Image.SCALE_DEFAULT;
 
@@ -21,13 +23,12 @@ public class Unit {
     protected double attack_speed;
     protected int attack_size;
     protected int value;
-    protected int targeting;
     protected double distanceCounted;
     protected double internal_attack_timer;
-    protected levelBoard.Direction direction = levelBoard.Direction.DOWN;
+    protected levelBoard.Direction direction;
     protected double lackedMovement;
     protected String enemyType;
-    protected boolean isMoving = false;
+    protected boolean isMoving;
     protected boolean isAttacking;
     protected String unitType;
     protected int cost;
@@ -35,16 +36,28 @@ public class Unit {
     protected int upgradesSecondPath;
     protected int upgradesThrirdPath;
     protected String imageName;
+    protected int targetX;
+    protected int targetY;
+    protected double healing_timer;
+    int heal_time;
+    int healing;
+    double healed;
+    int collum;
+    int row;
 
-
-    public Unit(int x, int y, String unitType,  int health, levelBoard.Direction direction) {
+    public Unit(int x, int y, String unitType,  int health, levelBoard.Direction direction, int collum, int row, int targetX, int targetY, boolean isMoving) {
         this.x = x;
         this.y = y;
         this.health = health;
         visible = true;
         this.direction = direction;
         this.unitType = unitType;
-    }
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.collum = collum;
+        this.row = row;
+        this.isMoving = isMoving;
+   }
 
     protected void updateImage( levelBoard.Direction direction) {
         ImageIcon imageIcon = new ImageIcon(imageName + "_"+toString(direction) + ".png");
@@ -52,6 +65,19 @@ public class Unit {
         image = imageIcon.getImage();
 
         getImageDimensions();
+    }
+
+    public int getTargetX(){
+        return targetX;
+    }
+
+    public int getTargetY() {
+        return targetY;
+    }
+
+    public void setTarget (int x, int y){
+        targetX = x;
+        targetY = y;
     }
 
     public String toString(levelBoard.Direction direction) {
@@ -64,7 +90,10 @@ public class Unit {
         } else
             return "LEFT";
     }
-
+    public void updatePosition (int collumincrease, int rowincrease){
+        collum += collumincrease;
+        row += rowincrease;
+    }
     protected void loadImage(String imageName, int width, int height) {
         ImageIcon imageIcon = new ImageIcon(imageName);
 
@@ -120,7 +149,8 @@ public class Unit {
     public void setVisible(Boolean visible) {
         this.visible = visible;
     }
-    public void move () {
+    public void move (int [][] lab) {
+        setDirection(findShortestPathToGoal(lab, collum, row, targetX, targetY));
         if (lackedMovement >= 1) {
             x +=  (speed + 1)* direction.getDx();
             y +=  (speed + 1)* direction.getDy();
@@ -169,14 +199,6 @@ public class Unit {
         return attack_size;
     }
 
-    public int getValue() {
-        return value;
-    }
-
-    public int getTargeting() {
-        return targeting;
-    }
-
     public int getHealth() {
         return health;
     }
@@ -203,6 +225,17 @@ public class Unit {
     public String getEnemyType() {
         return enemyType;
     }
+    public void resetHealTimer () {
+        healing_timer = 0;
+        healing = 0;
+    }
+    public void updateHealTimer (double increase){
+        healing_timer = healing_timer + increase;
+    }
+
+    public double getHealing_timer() {
+        return healing_timer;
+    }
 
     public levelBoard.Direction getDirection() {
         return direction;
@@ -213,7 +246,7 @@ public class Unit {
     }
 
     public void initUnit() {
-        if (unitType == "spearman"){
+        if (unitType.equals( "spearman")){
             imageName = "src/recources/level_elements/Friendly_units/Spearman/spearman";
             updateImage( direction);
             max_health = 50;
@@ -225,6 +258,89 @@ public class Unit {
             attack_speed = 1000;
             attack_size = 1;
             cost = 50;
+            heal_time = 3000;
+            healed = 0.1;
+        }
+    }
+    public int heal (double period){
+        healing_timer += period;
+        if (healing_timer >= heal_time){
+            healing += healed;
+            if (healing >= 1){
+                health += 1;
+                healing -= 1;
+                return 1;
+            } else{
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    public int getHeal_time() {
+        return heal_time;
+    }
+
+    public String getUnitType() {
+        return unitType;
+    }
+    private levelBoard.Direction findShortestPathToGoal
+            (int [][] lab, int cx, int cy, int goalx, int goaly) {
+        // Create a queue for all nodes we will process in breadth-first order.
+        // Each node is a data structure containing the cat's position and the
+        // initial direction it took to reach this point.
+        Queue<Node> queue = new ArrayDeque<>();
+
+        // Matrix for "discovered" fields
+        // (I know we're wasting a few bytes here as the cat and mouse can never
+        // reach the outer border, but it will make the code easier to read. Another
+        // solution would be to not store the outer border at all - neither here nor
+        // in the labyrinth. But then we'd need additional checks in the code
+        // whether the outer border is reached.)
+        boolean[][] discovered = new boolean[lab.length][lab[0].length];
+
+        // "Discover" and enqueue the cat's start position
+        discovered[cy][cx] = true;
+        queue.add(new Node(cx, cy, null));
+
+        while (!queue.isEmpty()) {
+            Node node = queue.poll();
+
+            // Go breath-first into each direction
+            for (levelBoard.Direction dir : levelBoard.Direction.values()) {
+                if ((node.x != 0 || dir.getDx() >= 0) && (node.x != lab[0].length - 1 || dir.getDx() <= 0) && (node.y != 0 || dir.getDy() >= 0) && (node.y != lab.length - 1 || dir.getDy() <= 0)) {
+                    int newX = node.x + dir.getDx();
+                    int newY = node.y + dir.getDy();
+                    levelBoard.Direction newDir = node.initialDir == null ? dir : node.initialDir;
+
+                    // Mouse found?
+                    if (newX == goalx && newY == goaly) {
+                        return newDir;
+                    }
+
+                    // Is there a path in the direction (= is it a free field in the labyrinth)?
+                    // And has that field not yet been discovered?
+                    if ((lab[newY][newX] < 2) && !discovered[newY][newX]) {
+                        // "Discover" and enqueue that field
+                        discovered[newY][newX] = true;
+                        queue.add(new Node(newX, newY, newDir));
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("no path found");
+    }
+
+    private static class Node {
+        final int x;
+        final int y;
+        final levelBoard.Direction initialDir;
+
+        public Node(int x, int y, levelBoard.Direction initialDir) {
+            this.x = x;
+            this.y = y;
+            this.initialDir = initialDir;
         }
     }
 }

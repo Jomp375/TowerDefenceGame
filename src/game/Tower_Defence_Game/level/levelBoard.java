@@ -43,8 +43,9 @@ public class levelBoard extends JPanel {
     private int CURRENT_WAVE = 1;
     private double MILLISECONDS_PASSED = 0;
     private final int AMOUNT_OF_WAVES = 7;
-    private ArrayList<HitEffect> hitEffects = new ArrayList<HitEffect>();
+    private ArrayList<HitEffect> hitEffects = new ArrayList<>();
     private boolean isPlacingSpearman = false;
+    private boolean isSettingtarget = false;
     public int MAX_HEALTH = 250;
     public int CURRENT_HEALTH = MAX_HEALTH;
     private Unit current_unit;
@@ -78,18 +79,16 @@ public class levelBoard extends JPanel {
             }
         }
         money = startMoney;
-        var random = new Random();
         inGame = true;
         statusbar.setText("Wave " + CURRENT_WAVE + " / " + AMOUNT_OF_WAVES + "            Money: " +money + "$                  health: " + CURRENT_HEALTH + " / " + MAX_HEALTH  );
         add(createSpearManButton());
-        int i = 0;
     }
     private JButton createSpearManButton() {
 
         JButton spearmanButton = MenuButton.createMenuButton("$50", "src/recources/level_elements/Friendly_units/Spearman/spearman_DOWN.png", true);
         spearmanButton.setLocation(BOARD_WIDTH / 2 - spearmanButton.getWidth() / 2, BOARD_HEIGHT - spearmanButton.getHeight()-2);
         spearmanButton.addActionListener(actionEvent -> {
-            if (isPlacingSpearman){
+            if (isPlacingSpearman || isSettingtarget){
                 isPlacingSpearman = false;
             } else{
                 if (money >= 50) {
@@ -132,7 +131,7 @@ public class levelBoard extends JPanel {
                         g2d.drawImage(base.getImage(), i * CELL_SIZE,
                                 j * CELL_SIZE, this);
                         isFirstBase = false;
-                    } else if (Field[j][i] == AVAILIBLE_CELL && isPlacingSpearman) {
+                    } else if (Field[j][i] == AVAILIBLE_CELL && (isPlacingSpearman||isSettingtarget)) {
 
                         g2d.drawImage(available.getImage(), i * CELL_SIZE,
                                 j * CELL_SIZE, this);
@@ -165,18 +164,17 @@ public class levelBoard extends JPanel {
         }
     }
     private class MinesAdapter extends MouseAdapter {
+        Unit selected_unit = null;
         @Override
         public void mousePressed(MouseEvent e) {
+
             int x = e.getX();
             int y = e.getY();
             int cCol = x / CELL_SIZE;
             int cRow = y / CELL_SIZE;
-            if (enemies [cRow][cCol] != null){
-                enemies[cRow][cCol].damage(1);
-                healthbars[cRow][cCol].updateHealthbar(1);
-                hitEffects.add(new HitEffect(x, y, 1));
-                checkForDeath();
-                }
+            if (units[cRow][cCol] != null&& !isSettingtarget) {
+                selected_unit = units[cRow][cCol];
+            }
             if (inGame){
                 started = true;
             }
@@ -184,15 +182,22 @@ public class levelBoard extends JPanel {
                 newGame();
                 repaint();
             }
-            if (doRepaint) {
-                        repaint();
-                    }
-            if (isPlacingSpearman){
+
+            if (isSettingtarget){
+                if (Field[cRow][cCol] == AVAILIBLE_CELL ){
+                    selected_unit.setTarget(cCol, cRow);
+                    selected_unit.setMoving(true);
+                }
+                isSettingtarget = false;
+            } else if (isPlacingSpearman){
                 if (Field[cRow][cCol] == AVAILIBLE_CELL && money >= 50){
                     MakeUnit(cCol,cRow,"spearman",50);
                     money -= 50;
                 }
                 isPlacingSpearman = false;
+            }else if (Field[cRow][cCol] == FRIENDLY_CELL){
+                isSettingtarget = true;
+                message = "select a space to move the " + selected_unit.getUnitType() + " towards.";
             }
         }
     }
@@ -288,19 +293,17 @@ public class levelBoard extends JPanel {
 
        throw new IllegalArgumentException("no path found");
     }
-
     private static class Node {
         final int x;
         final int y;
-        final Direction initialDir;
+        final levelBoard.Direction initialDir;
 
-        public Node(int x, int y, Direction initialDir) {
+        public Node(int x, int y, levelBoard.Direction initialDir) {
             this.x = x;
             this.y = y;
             this.initialDir = initialDir;
         }
     }
-
     public enum Direction {
         RIGHT(1, 0),
         UP(0, -1),
@@ -329,7 +332,9 @@ public class levelBoard extends JPanel {
             updateWave(level);
             cleanBoard();
             fightOrFlight();
+            checkForDeath();
             updateStatusbar();
+
             if (CURRENT_HEALTH <= 0){
                 gameover();
             }
@@ -426,7 +431,6 @@ public class levelBoard extends JPanel {
                                          healthbars[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()].updateHealthbar(current_enemy.getDamage());
                                          units[j + current_enemy.getDirection().getDy() * current_enemy.getRange()][i + current_enemy.getDirection().getDx() * current_enemy.getRange()].damage(current_enemy.getDamage());
                                          hitEffects.add(new HitEffect((i + current_enemy.getDirection().getDx() * current_enemy.getRange()) * CELL_SIZE, (j + current_enemy.getDirection().getDy() * current_enemy.getRange()) * CELL_SIZE, current_enemy.getDirection(), current_enemy.getDamage()));
-                                         checkForDeath();
                                      }
                                      current_enemy.resetAttackTimer();
                                  }
@@ -460,30 +464,50 @@ public class levelBoard extends JPanel {
                                     }
                                 }
                         }
-                         if (units[j][i] != null){
-                             Unit current_unit = units [j][i];
+                         if (units[j][i] != null) {
+                             Unit current_unit = units[j][i];
                              current_unit.setAttacking(false);
-                             for (Direction dir : Direction.values()) {
-                                 if (j + dir.getDy() * current_unit.getRange() >= 0 &&
-                                         j + dir.getDy() * current_unit.getRange() < N_COLS &&
-                                         i + dir.getDx() * current_unit.getRange() >= 0 &&
-                                         i + dir.getDx() * current_unit.getRange() < N_ROWS) {
+                             if (current_unit.isMoving()) {
+                                 healthbars[j][i].updateHealthbar(-(current_unit.heal(PERIOD)));
+                                 current_unit.move(Field);
+                                 healthbars[j][i].move(current_unit);
+                                 if (current_unit.getDistanceCounted() >= CELL_SIZE) {
+                                     current_unit.updatePosition(current_unit.getDirection().getDx(), current_unit.getDirection().getDy());
+                                     current_unit.resetDistanceCounted();
+                                     healthbars[j + current_unit.getDirection().getDy()][i + current_unit.getDirection().getDx()] = new healthbar(healthbars[j][i].getX(), healthbars[j][i].getY(), healthbars[j][i].getHealth(), healthbars[j][i].getMaxHealth());
+                                     units[j + current_unit.getDirection().getDy()][i + current_unit.getDirection().getDx()] = new Unit(current_unit.getX(), current_unit.getY(), current_unit.getUnitType(), current_unit.getHealth(), current_unit.getDirection(), i + current_unit.getDirection().getDx(), j + current_unit.getDirection().getDy(), current_unit.getTargetX(),current_unit.getTargetY(),true);
+                                     units[j + current_unit.getDirection().getDy()][i + current_unit.getDirection().getDx()].initUnit();
+                                     Field[j + current_unit.getDirection().getDy()][i + current_unit.getDirection().getDx()] = FRIENDLY_CELL;
+                                     Field[j][i] = 0;
+                                     units[j][i] = null;
+                                     healthbars[j][i] = null;
+                                 }
+                                 if (current_unit.getTargetX() == i && current_unit.getTargetY() == j) {
+                                     current_unit.setMoving(false);
+                                 }
+                             } else {
+                                 for (Direction dir : Direction.values()) {
+                                     if (j + dir.getDy() * current_unit.getRange() >= 0 &&
+                                             j + dir.getDy() * current_unit.getRange() < N_COLS &&
+                                             i + dir.getDx() * current_unit.getRange() >= 0 &&
+                                             i + dir.getDx() * current_unit.getRange() < N_ROWS) {
 
-                                     if (Field[j + dir.getDy() * current_unit.getRange()][i + dir.getDx() * current_unit.getRange()] == ENEMY_CELL && !current_unit.isAttacking()) {
-                                         current_unit.setAttacking(true);
-                                         current_unit.setDirection(dir);
-                                         current_unit.updateImage(dir);
+                                         if (Field[j + dir.getDy() * current_unit.getRange()][i + dir.getDx() * current_unit.getRange()] == ENEMY_CELL && !current_unit.isAttacking() && !current_unit.isMoving()) {
+                                             current_unit.setAttacking(true);
+                                             current_unit.setDirection(dir);
+                                             current_unit.updateImage(dir);
+                                         }
                                      }
                                  }
-                             }
-                             if (current_unit.isAttacking) {
-                                 current_unit.updateAttackTimer(PERIOD);
-                                 if (current_unit.getAttackTimer() >= current_unit.getAttack_speed()) {
-                                     enemies[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].damage(current_unit.getDamage());
-                                     healthbars[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].updateHealthbar(current_unit.getDamage());
-                                     hitEffects.add(new HitEffect((i + current_unit.getDirection().getDx() * current_unit.getRange()) * CELL_SIZE, (j + current_unit.getDirection().getDy() * current_unit.getRange()) * CELL_SIZE, current_unit.getDirection(), current_unit.getDamage()));
-                                     checkForDeath();
-                                     current_unit.resetAttackTimer();
+                                 if (current_unit.isAttacking && !current_unit.isMoving()) {
+                                     current_unit.resetHealTimer();
+                                     current_unit.updateAttackTimer(PERIOD);
+                                     if (current_unit.getAttackTimer() >= current_unit.getAttack_speed()) {
+                                         enemies[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].damage(current_unit.getDamage());
+                                         healthbars[j + current_unit.getDirection().getDy() * current_unit.getRange()][i + current_unit.getDirection().getDx() * current_unit.getRange()].updateHealthbar(current_unit.getDamage());
+                                         hitEffects.add(new HitEffect((i + current_unit.getDirection().getDx() * current_unit.getRange()) * CELL_SIZE, (j + current_unit.getDirection().getDy() * current_unit.getRange()) * CELL_SIZE, current_unit.getDirection(), current_unit.getDamage()));
+                                         current_unit.resetAttackTimer();
+                                     }
                                  }
                              }
                          }
@@ -556,13 +580,13 @@ public class levelBoard extends JPanel {
         }
     }
     public void MakeEnemy (int x, int y, String enemytype, int health){
-        enemies[y][x] = new enemy(x*CELL_SIZE, y * CELL_SIZE, enemytype, health, Direction.LEFT);
+        enemies[y][x] = new enemy(x*CELL_SIZE, y * CELL_SIZE, enemytype, health, Direction.RIGHT);
         enemies[y][x].initEnemy();
         healthbars[y][x] = new healthbar(x*CELL_SIZE, y * CELL_SIZE - 20, enemies[y][x].getHealth(), enemies[y][x].getMax_health());
         Field[y][x] = ENEMY_CELL;
     }
     public void MakeUnit (int x, int y, String unitType, int health){
-            units[y][x] = new Unit(x * CELL_SIZE, y * CELL_SIZE, unitType,health, Direction.DOWN);
+            units[y][x] = new Unit(x * CELL_SIZE, y * CELL_SIZE, unitType,health, Direction.DOWN, x, y, x, y, false);
             units[y][x].initUnit();
             healthbars[y][x] = new healthbar(x * CELL_SIZE, y * CELL_SIZE - 20, units[y][x].getHealth(), units[y][x].getMax_health());
             Field[y][x] = FRIENDLY_CELL;
