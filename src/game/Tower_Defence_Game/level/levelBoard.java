@@ -18,9 +18,10 @@ public class levelBoard extends JPanel {
     private final int CELL_SIZE = 60;
     private final int MOVING_CELL = -1;
     private final int EMPTY_CELL = 0;
+    private final int AVAILIBLE_CELL = 1;
     private final int ROCK_CELL = 2;
-    private final int ENEMY_CELL = 1;
-    private final int FRIENDLY_CELL = 3;
+    private final int ENEMY_CELL = 3;
+    private final int FRIENDLY_CELL = 4;
     private final int MAIN_BASE_CELL = 5;
     private final int N_ROWS = 25;
     private final int N_COLS = 13;
@@ -43,7 +44,6 @@ public class levelBoard extends JPanel {
     private double MILLISECONDS_PASSED = 0;
     private final int AMOUNT_OF_WAVES = 7;
     private ArrayList<HitEffect> hitEffects = new ArrayList<HitEffect>();
-    private JButton spearmanButton = new JButton();
     private boolean isPlacingSpearman = false;
     public int MAX_HEALTH = 250;
     public int CURRENT_HEALTH = MAX_HEALTH;
@@ -113,6 +113,7 @@ public class levelBoard extends JPanel {
         ImageIcon rock = new ImageIcon("src/recources/level_elements/Rock.png");
         ImageIcon empty = new ImageIcon("src/recources/level_elements/empty.png");
         ImageIcon base = new ImageIcon("src/recources/level_elements/main_base.png");
+        ImageIcon available = new ImageIcon("src/recources/level_elements/target_space.png");
         if (inGame) {
             for (int j = 0; j < N_COLS; j++) {
                 for (int i = 0; i < N_ROWS; i++) {
@@ -131,6 +132,10 @@ public class levelBoard extends JPanel {
                         g2d.drawImage(base.getImage(), i * CELL_SIZE,
                                 j * CELL_SIZE, this);
                         isFirstBase = false;
+                    } else if (Field[j][i] == AVAILIBLE_CELL && isPlacingSpearman) {
+
+                        g2d.drawImage(available.getImage(), i * CELL_SIZE,
+                                j * CELL_SIZE, this);
                     }
                     if (enemies[j][i] != null) {
                         current_enemy = enemies[j][i];
@@ -183,10 +188,11 @@ public class levelBoard extends JPanel {
                         repaint();
                     }
             if (isPlacingSpearman){
-                if (Field[cRow][cCol] == EMPTY_CELL && money >= 50){
+                if (Field[cRow][cCol] == AVAILIBLE_CELL && money >= 50){
                     MakeUnit(cCol,cRow,"spearman",50);
                     money -= 50;
                 }
+                isPlacingSpearman = false;
             }
         }
     }
@@ -492,6 +498,14 @@ public class levelBoard extends JPanel {
         if (started) {
             if (level == 1) {
                 if (CURRENT_WAVE == 1) {
+                    for (int j = 0; j < N_COLS; j++) {
+                        for (int i = 0; i < N_ROWS; i++) {
+                            if (Field [j][i] == EMPTY_CELL&& i >= 18){
+                                Field[j][i] = AVAILIBLE_CELL;
+                            }
+                        }
+                        }
+
                     if (MILLISECONDS_PASSED >= 2000 && MILLISECONDS_PASSED <= 2020) {
                         MakeEnemy(0, 5, "farmer", 30);
                     }
@@ -507,6 +521,13 @@ public class levelBoard extends JPanel {
                     }
                 }
                 if (CURRENT_WAVE == 2) {
+                    for (int j = 0; j < N_COLS; j++) {
+                        for (int i = 0; i < N_ROWS; i++) {
+                            if (Field [j][i] == EMPTY_CELL&& i >= 16){
+                                Field[j][i] = AVAILIBLE_CELL;
+                            }
+                        }
+                    }
                     if (MILLISECONDS_PASSED >= 100 && MILLISECONDS_PASSED <= 120) {
                         MakeEnemy(0, 5, "farmer", 30);
                     }
@@ -519,7 +540,7 @@ public class levelBoard extends JPanel {
                         MakeEnemy(0, 3, "farmer", 30);
                     }
                     if (MILLISECONDS_PASSED >= 21000 && MILLISECONDS_PASSED <= 21020) {
-                        MakeEnemy(0, 5, "farmer", 30);
+                        MakeEnemy(0, 4, "farmer", 30);
                         MakeEnemy(1, 7, "farmer", 30);
                     }
                     if (MILLISECONDS_PASSED >= 25000 && MILLISECONDS_PASSED <= 25020) {
